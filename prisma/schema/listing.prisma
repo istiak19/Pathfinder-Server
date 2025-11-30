@@ -7,6 +7,7 @@ model Listing {
     duration     String
     meetingPoint String
     maxGroupSize Int
+    category     ListingCategory
     city         String
     images       String[] // Multiple images stored as array
     status       String?  @default("active")
