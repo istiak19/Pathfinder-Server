@@ -1,12 +1,18 @@
-import express, { Application, NextFunction, Request, Response } from 'express';
-import cors from 'cors';
-import globalErrorHandler from './app/middlewares/globalErrorHandler';
+import express, { Application, Request, Response } from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
 import notFound from './app/middlewares/notFound';
 import config from './config';
-import { uptime } from 'process';
-import { timeStamp } from 'console';
+import router from './app/routes';
+import globalErrorHandler from "./app/middlewares/globalErrorHandler";
+// import { PaymentController } from "./app/modules/payment/payemt.controller";
+// import cron from 'node-cron';
+// import { appointmentService } from "./app/modules/appointment/appointment.service";
 
 const app: Application = express();
+
+// app.post("/webhook", express.raw({ type: "application/json" }), PaymentController.handleStripeWebhookEvent);
+
 app.use(cors({
     origin: 'http://localhost:3000',
     credentials: true
@@ -15,9 +21,20 @@ app.use(cors({
 //parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
+app.use("/api", router);
 
-app.get('/', (req: Request, res: Response) => {
+// cron.schedule('* * * * *', () => {
+//     try {
+//         appointmentService.cancelUnpaidAppointments();
+//         console.log("Node cron called at ", new Date());
+//     } catch (err) {
+//         console.error(err);
+//     }
+// });
+
+app.get("/", (req: Request, res: Response) => {
     res.send({
         message: "Server is running..",
         environment: config.node_env,
@@ -28,7 +45,6 @@ app.get('/', (req: Request, res: Response) => {
 
 
 app.use(globalErrorHandler);
-
 app.use(notFound);
 
 export default app;

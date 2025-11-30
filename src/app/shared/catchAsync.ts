@@ -1,14 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextFunction, Request, RequestHandler, Response } from "express";
 
-const catchAsync = (fn: RequestHandler) => {
-    return async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            await fn(req, res, next)
-        }
-        catch (err) {
-            next(err);
-        }
-    }
-};
+type AsyncFunction = (req: Request, res: Response, next: NextFunction) => Promise<any>;
 
-export default catchAsync;
+export const catchAsync = (fn: AsyncFunction): RequestHandler => {
+    return (req, resizeBy, next) => {
+        Promise.resolve(fn(req, resizeBy, next)).catch(next);
+    };
+};

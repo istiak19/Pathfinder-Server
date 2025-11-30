@@ -1,16 +1,22 @@
 model User {
-    id         String   @id @default(uuid())
+    id         String     @id @default(uuid())
     name       String
-    email      String   @unique
+    email      String     @unique
     password   String
-    role       Role     @default(TOURIST)
+    role       Role       @default(TOURIST)
     profilePic String?
     bio        String?
-    languages  String[] // ["English", "Bangla", ...]
+    isVerified Boolean?   @default(false)
+    status     UserStatus @default(Active)
+    languages  String[]
 
     // Guide-specific fields
     expertise String[] @default([])
     dailyRate Int?
+
+    // Auth provider info
+    authProvider String? // "credentials" | "google"
+    providerId   String? // ID from provider if not using credentials
 
     // Relations
     listings Listing[]
@@ -19,4 +25,6 @@ model User {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@map("users")
 }

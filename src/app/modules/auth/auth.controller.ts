@@ -1,0 +1,93 @@
+import httpStatus from 'http-status';
+import { Request, Response } from "express";
+import sendResponse from '../../shared/sendResponse';
+import { authService } from './auth.service';
+import { userCreateToken } from '../../utils/userCreateToken';
+import { setCookies } from '../../utils/setCookies';
+import { JwtPayload } from 'jsonwebtoken';
+import { catchAsync } from '../../shared/catchAsync';
+
+const login = catchAsync(async (req: Request, res: Response) => {
+    const userInfo = req.body;
+    const user = await authService.login(userInfo);
+    const userTokens = await userCreateToken(user);
+    setCookies(res, userTokens);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Login successful!",
+        data: {
+            accessToken: userTokens.accessToken,
+            refreshToken: userTokens.refreshToken,
+            user
+        },
+    });
+});
+
+// const getMeUser = catchAsync(async (req: Request, res: Response) => {
+//     const decodedToken = req.user as JwtPayload;
+//     // const userSession = req.cookies;
+//     const user = await authService.getMeUser(decodedToken);
+
+//     sendResponse(res, {
+//         success: true,
+//         statusCode: httpStatus.OK,
+//         message: "User retrieved successfully!",
+//         data: user
+//     });
+// });
+
+// const forgotPassword = catchAsync(async (req: Request, res: Response) => {
+//     const userInfo = req.body;
+//     const user = await authService.forgotPassword(userInfo);
+
+//     sendResponse(res, {
+//         success: true,
+//         statusCode: httpStatus.OK,
+//         message: "Check your email!",
+//         data: user
+//     });
+// });
+
+const logout = catchAsync(async (req: Request, res: Response) => {
+    res.cookie("accessToken", "", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        maxAge: 0,
+        path: "/"
+    });
+
+    res.cookie("refreshToken", "", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        maxAge: 0,
+        path: "/"
+    });
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "User logout in successfully",
+        data: null
+    });
+});
+
+// const resetPassword = catchAsync(async (req: Request, res: Response) => {
+//     const token = req.headers.authorization || "";
+
+//     await authService.resetPassword(token, req.body);
+//     sendResponse(res, {
+//         statusCode: httpStatus.OK,
+//         success: true,
+//         message: "Password Reset!",
+//         data: null,
+//     });
+// });
+
+export const authController = {
+    login,
+    logout,
+};
