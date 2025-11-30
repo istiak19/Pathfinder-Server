@@ -1,16 +1,30 @@
-enum UserRole {
-    PATIENT
-    DOCTOR
+enum Role {
+    TOURIST
+    GUIDE
     ADMIN
 }
 
-enum UserStatus {
-    ACTIVE
-    INACTIVE
-    DELETED
+enum BookingStatus {
+    PENDING
+    CONFIRMED
+    COMPLETED
+    CANCELLED
 }
 
-enum Gender {
-    MALE
-    FEMALE
+enum PaymentStatus {
+    UNPAID
+    PAID
+    REFUNDED
+    FAILED
+}
+
+enum UserStatus {
+    Active
+    Inactive
+    Block
+}
+
+enum ListingStatus {
+    Active
+    Inactive
 }

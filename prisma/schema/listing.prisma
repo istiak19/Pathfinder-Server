@@ -1,0 +1,25 @@
+model Listing {
+    id           String   @id @default(uuid())
+    title        String
+    description  String
+    itinerary    String?
+    price        Int
+    duration     String
+    meetingPoint String
+    maxGroupSize Int
+    city         String
+    images       String[] // Multiple images stored as array
+    status       String?  @default("active")
+
+    // Relation
+    guideId String
+    guide   User   @relation(fields: [guideId], references: [id])
+
+    bookings Booking[]
+    reviews  Review[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("listings")
+}
