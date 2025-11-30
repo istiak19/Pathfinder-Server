@@ -4,6 +4,8 @@ import { listingService } from "./listing.service";
 import sendResponse from "../../shared/sendResponse";
 import { catchAsync } from "../../shared/catchAsync";
 import { JwtPayload } from "jsonwebtoken";
+import pick from "../../helpers/pick";
+import { listingFilterableFields } from "./listing.constant";
 
 const createListing = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
@@ -28,7 +30,9 @@ const createListing = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllListings = catchAsync(async (req: Request, res: Response) => {
-    const listings = await listingService.getAllListings();
+    const filters = pick(req.query, listingFilterableFields) // searching , filtering
+    const options = pick(req.query, ["page", "limit", "sortBy", "sortOrder"]) // pagination and sorting
+    const listings = await listingService.getAllListings(filters, options);
 
     sendResponse(res, {
         success: true,
@@ -74,7 +78,8 @@ const updateListing = catchAsync(async (req: Request, res: Response) => {
 });
 
 const deleteListing = catchAsync(async (req: Request, res: Response) => {
-    const listing = await listingService.deleteListing(req.params.id);
+    const decoded = req.user as JwtPayload;
+    const listing = await listingService.deleteListing(decoded, req.params.id);
 
     sendResponse(res, {
         success: true,

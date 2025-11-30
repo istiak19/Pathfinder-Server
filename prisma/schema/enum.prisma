@@ -11,6 +11,19 @@ enum BookingStatus {
     CANCELLED
 }
 
+enum ListingCategory {
+    FOOD
+    ART
+    ADVENTURE
+    NATURE
+    CULTURE
+    SHOPPING
+    SPORTS
+    WELLNESS
+    HISTORY
+    ENTERTAINMENT
+}
+
 enum PaymentStatus {
     UNPAID
     PAID

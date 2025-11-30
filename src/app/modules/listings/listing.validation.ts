@@ -9,6 +9,7 @@ export const createListingZodSchema = z.object({
     meetingPoint: z.string().min(1, { message: "Meeting point is required" }),
     maxGroupSize: z.number({ message: "Max group size must be a number" }),
     city: z.string().min(1, { message: "City is required" }),
+    category: z.string().min(1, { message: "Category is required" }),
     guideId: z.string().min(1, { message: "Guide ID is required" }),
     status: z.string().optional(),
 
@@ -24,6 +25,7 @@ export const updateListingZodSchema = z.object({
     meetingPoint: z.string().min(1, { message: "Meeting point is required" }).optional(),
     maxGroupSize: z.number({ message: "Max group size must be a number" }).optional(),
     city: z.string().min(1, { message: "City is required" }).optional(),
+    category: z.string().min(1, { message: "Category is required" }).optional(),
     guideId: z.string().min(1, { message: "Guide ID is required" }).optional(),
     status: z.string().optional(),
 
