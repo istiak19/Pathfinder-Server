@@ -1,31 +1,73 @@
-import bcrypt from "bcryptjs";
-import httpStatus from 'http-status';
 import { prisma } from "../../shared/prisma";
 import { AppError } from "../../errors/AppError";
+import httpStatus from "http-status";
+import { CreateUserPayload } from "./user.interface";
+import bcrypt from "bcryptjs";
+import { JwtPayload } from "jsonwebtoken";
 
-const createUser = async (payload:any) => {
-    const { email, password, ...rest } = payload;
-    const isExist = await prisma.user.findUnique
-    if (isExist) {
-        throw new AppError(httpStatus.BAD_REQUEST, "A user with this email already exists.");
+const getAllUsers = async (token: JwtPayload) => {
+    const isExistUser = await prisma.user.findUnique({
+        where: {
+            email: token.email
+        }
+    });
+
+    if (!isExistUser) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User not found");
     };
 
-    const hashPassword = await bcrypt.hash(password as string, 10);
+    const users = await prisma.user.findMany();
+    return users;
+};
 
-    // const auth: IAuthProvider = {
-    //     provider: "credentials",
-    //     providerId: email as string
+const getSingleUser = async (token: JwtPayload, id: string) => {
+    const isExistUser = await prisma.user.findUnique({
+        where: {
+            email: token.email
+        }
+    });
+
+    if (!isExistUser) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+    };
+
+    const user = await prisma.user.findUnique({
+        where: { id }
+    });
+
+    if (!user) {
+        throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+    return user;
+};
+
+const createUser = async (payload: CreateUserPayload) => {
+    const { email, password, ...rest } = payload;
+
+    // const isExist = await prisma.user.findUnique({
+    //     where: { email }
+    // });
+
+    // if (isExist) {
+    //     throw new AppError(httpStatus.BAD_REQUEST, "A user with this email already exists.");
     // };
 
+    const hashPassword = await bcrypt.hash(password, 10);
+
     const user = await prisma.user.create({
-        email,
-        password: hashPassword,
-        ...rest
+        data: {
+            email,
+            password: hashPassword,
+            ...rest
+        }
     });
 
     return user;
 };
 
 export const userService = {
-    createUser
+    createUser,
+    getAllUsers,
+    getSingleUser
 };
