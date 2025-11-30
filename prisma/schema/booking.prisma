@@ -1,0 +1,22 @@
+model Booking {
+    id     String        @id @default(uuid())
+    date   DateTime
+    status BookingStatus @default(PENDING)
+
+    // Relations
+    listingId String
+    listing   Listing @relation(fields: [listingId], references: [id])
+
+    touristId String
+    tourist   User   @relation(name: "UserBookings", fields: [touristId], references: [id])
+
+    paymentStatus PaymentStatus @default(UNPAID)
+    paymentId     String?
+    payment       Payment?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    reviews   Review[]
+
+    @@map("bookings")
+}

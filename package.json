@@ -2,7 +2,7 @@
   "name": "ph-health-care-starter",
   "version": "1.0.0",
   "main": "server.js",
-  "author": "shafayat",
+  "author": "Istiak",
   "license": "MIT",
   "prisma": {
     "schema": "./prisma/schema"
