@@ -66,8 +66,47 @@ const createUser = async (payload: CreateUserPayload) => {
     return user;
 };
 
+const updateUser = async (token: JwtPayload, id: string, payload: Partial<CreateUserPayload>) => {
+    const isExistUser = await prisma.user.findUnique({
+        where: {
+            email: token.email
+        }
+    });
+
+    if (!isExistUser) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+    };
+
+    if (payload.password) {
+        payload.password = await bcrypt.hash(payload.password, 10);
+    }
+
+    return await prisma.user.update({
+        where: { id },
+        data: payload,
+    });
+};
+
+const deleteUser = async (token: JwtPayload, id: string) => {
+    const isExistUser = await prisma.user.findUnique({
+        where: {
+            email: token.email
+        }
+    });
+
+    if (!isExistUser) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+    };
+
+    return await prisma.user.delete({
+        where: { id },
+    });
+}
+
 export const userService = {
     createUser,
     getAllUsers,
-    getSingleUser
+    getSingleUser,
+    updateUser,
+    deleteUser
 };

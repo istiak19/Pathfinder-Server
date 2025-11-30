@@ -40,8 +40,45 @@ const getSingleUser = catchAsync(async (req, res) => {
     });
 });
 
+const updateUser = catchAsync(async (req, res) => {
+    const decoded = req.user as JwtPayload;
+    const profilePic = req.file?.path;
+    let bodyData: any = req.body;
+    if (req.body.data) {
+        bodyData = JSON.parse(req.body.data);
+    }
+
+    const payload = {
+        profilePic,
+        ...bodyData
+    };
+
+    const user = await userService.updateUser(decoded, req.params.id, payload);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "User updated successfully",
+        data: user,
+    });
+});
+
+const deleteUser = catchAsync(async (req, res) => {
+    const decoded = req.user as JwtPayload;
+    await userService.deleteUser(decoded, req.params.id);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "User deleted successfully",
+        data: null,
+    });
+});
+
 export const userController = {
     createUser,
     getAllUsers,
-    getSingleUser
+    getSingleUser,
+    updateUser,
+    deleteUser
 };
