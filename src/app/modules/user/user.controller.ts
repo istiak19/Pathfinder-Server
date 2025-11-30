@@ -4,6 +4,8 @@ import { catchAsync } from '../../shared/catchAsync';
 import { userService } from './user.service';
 import sendResponse from '../../shared/sendResponse';
 import { JwtPayload } from 'jsonwebtoken';
+import pick from '../../helpers/pick';
+import { userFilterableFields } from './user.constant';
 
 const createUser = catchAsync(async (req, res) => {
     const user = await userService.createUser(req.body);
@@ -18,7 +20,9 @@ const createUser = catchAsync(async (req, res) => {
 
 const getAllUsers = catchAsync(async (req, res) => {
     const decodedToken = req.user as JwtPayload;
-    const users = await userService.getAllUsers(decodedToken);
+    const filters = pick(req.query, userFilterableFields) // searching , filtering
+    const options = pick(req.query, ["page", "limit", "sortBy", "sortOrder"]) // pagination and sorting
+    const users = await userService.getAllUsers(decodedToken, filters, options);
 
     sendResponse(res, {
         success: true,

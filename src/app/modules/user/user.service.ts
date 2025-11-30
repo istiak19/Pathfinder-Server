@@ -4,8 +4,15 @@ import httpStatus from "http-status";
 import { CreateUserPayload } from "./user.interface";
 import bcrypt from "bcryptjs";
 import { JwtPayload } from "jsonwebtoken";
+import { FilterParams } from "../../../constants";
+import calculatePagination, { IOptions } from "../../helpers/paginationHelper";
+import { Prisma } from "@prisma/client";
+import { userSearchableFields } from "./user.constant";
 
-const getAllUsers = async (token: JwtPayload) => {
+const getAllUsers = async (token: JwtPayload, params: FilterParams, options: IOptions) => {
+    const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options)
+    const { searchTerm, ...filterData } = params;
+
     const isExistUser = await prisma.user.findUnique({
         where: {
             email: token.email
@@ -16,7 +23,39 @@ const getAllUsers = async (token: JwtPayload) => {
         throw new AppError(httpStatus.BAD_REQUEST, "User not found");
     };
 
-    const users = await prisma.user.findMany();
+    const andConditions: Prisma.UserWhereInput[] = [];
+    if (searchTerm) {
+        andConditions.push({
+            OR: userSearchableFields.map(field => ({
+                [field]: {
+                    contains: searchTerm,
+                    mode: "insensitive"
+                }
+            }))
+        })
+    };
+
+    if (Object.keys(filterData).length > 0) {
+        andConditions.push({
+            AND: Object.keys(filterData).map(key => ({
+                [key]: {
+                    equals: (filterData as any)[key]
+                }
+            }))
+        })
+    };
+
+    const whereConditions: Prisma.UserWhereInput = andConditions.length > 0 ? {
+        AND: andConditions
+    } : {};
+
+    const users = await prisma.user.findMany({
+        skip,
+        take: limit,
+        where: whereConditions,
+        orderBy: { [sortBy]: sortOrder }
+    });
+
     return users;
 };
 
