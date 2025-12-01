@@ -2,6 +2,7 @@ model Booking {
     id     String        @id @default(uuid())
     date   DateTime
     status BookingStatus @default(PENDING)
+    guests Int           @default(1)
 
     // Relations
     listingId String

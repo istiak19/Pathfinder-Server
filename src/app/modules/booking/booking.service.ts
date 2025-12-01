@@ -2,10 +2,14 @@ import httpStatus from "http-status";
 import { AppError } from "../../errors/AppError";
 import { JwtPayload } from "jsonwebtoken";
 import { prisma } from "../../shared/prisma";
+import calculatePagination, { IOptions } from "../../helpers/paginationHelper";
+import { FilterParams } from "../../../constants";
+import { Prisma } from "@prisma/client";
+import { bookingSearchableFields } from "./booking.constant";
 
 
 // --- Create Booking (Tourist) ---
-const createBooking = async (token: JwtPayload, payload: { listingId: string; date: string }) => {
+const createBooking = async (token: JwtPayload, payload: { listingId: string; date: string, guests: number }) => {
 
     // Check listing exists
     const listing = await prisma.listing.findUnique({
@@ -21,6 +25,7 @@ const createBooking = async (token: JwtPayload, payload: { listingId: string; da
         data: {
             listingId: payload.listingId,
             touristId: token.userId,
+            guests: payload.guests,
             date: new Date(payload.date),
         },
         include: {
@@ -40,18 +45,68 @@ const createBooking = async (token: JwtPayload, payload: { listingId: string; da
 //   });
 // },
 
-// getGuideBookings: async (guideId: string) => {
-//   return prisma.booking.findMany({
-//     where: {
-//       listing: { guideId }
-//     },
-//     include: {
-//       listing: true,
-//       tourist: true,
-//     },
-//     orderBy: { createdAt: "desc" },
-//   });
-// },
+export const getGuideBookings = async (token: JwtPayload, params: FilterParams, options: IOptions) => {
+    const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
+    const { searchTerm, guestsMin, guestsMax, dateFrom, dateTo, ...filterData } = params;
+
+    const andConditions: Prisma.BookingWhereInput[] = [];
+
+    // Text search
+    if (searchTerm) {
+        andConditions.push({
+            OR: bookingSearchableFields.map(field => ({
+                [field]: { contains: searchTerm, mode: "insensitive" },
+            })),
+        });
+    }
+
+    // Exact filters
+    Object.keys(filterData).forEach(key => {
+        if (filterData[key] !== undefined) {
+            andConditions.push({ [key]: { equals: filterData[key] } });
+        }
+    });
+
+    // Guests range filter
+    if (guestsMin || guestsMax) {
+        andConditions.push({
+            guests: {
+                gte: guestsMin ? Number(guestsMin) : undefined,
+                lte: guestsMax ? Number(guestsMax) : undefined,
+            },
+        });
+    }
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+        andConditions.push({
+            date: {
+                gte: dateFrom ? new Date(dateFrom) : undefined,
+                lte: dateTo ? new Date(dateTo) : undefined,
+            },
+        });
+    }
+
+    // Only bookings for the guide's listings
+    andConditions.push({
+        listing: { guideId: token.userId },
+    });
+
+    const whereConditions: Prisma.BookingWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+
+    const result = await prisma.booking.findMany({
+        skip,
+        take: limit,
+        where: whereConditions,
+        orderBy: { [sortBy || "createdAt"]: sortOrder || "desc" },
+        include: {
+            listing: true,
+            tourist: true,
+        },
+    });
+
+    return result;
+};
 
 // getAllBookings: async () => {
 //   return prisma.booking.findMany({
@@ -138,5 +193,6 @@ const cancelBooking = async (token: JwtPayload, id: string) => {
 
 export const bookingService = {
     createBooking,
+    getGuideBookings,
     cancelBooking
 };
