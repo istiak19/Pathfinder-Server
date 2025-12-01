@@ -8,6 +8,8 @@
     "schema": "./prisma/schema"
   },
   "scripts": {
+    "build": "tsc",
+    "start": "node ./dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts"
   },
   "dependencies": {
@@ -22,6 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
+    "stripe": "^20.0.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {

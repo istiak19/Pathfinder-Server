@@ -58,27 +58,20 @@ const getGuideBookings = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-// getAllBookings: catchAsync(async (req, res) => {
-//   const result = await bookingService.getAllBookings();
+const getAllBookings = catchAsync(async (req: Request, res: Response) => {
+    const decoded = req.user as JwtPayload;
+    const filters = pick(req.query, bookingFilterableFields) // searching , filtering
+    const options = pick(req.query, ["page", "limit", "sortBy", "sortOrder"]) // pagination and sorting
+    const result = await bookingService.getAllBookings(decoded, filters, options);
 
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: httpStatus.OK,
-//     message: "All bookings",
-//     data: result,
-//   });
-// }),
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "All bookings",
+        data: result,
+    });
+});
 
-// cancelBooking: catchAsync(async (req, res) => {
-//   const result = await bookingService.cancelBooking(req.user, req.params.id);
-
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: httpStatus.OK,
-//     message: "Booking cancelled",
-//     data: result,
-//   });
-// }),
 const updateBookingStatus = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
     const booking = await bookingService.updateBookingStatus(decoded, req.params.id, req.body);
@@ -107,6 +100,7 @@ export const bookingController = {
     createBooking,
     getMyBookings,
     getGuideBookings,
+    getAllBookings,
     updateBookingStatus,
     cancelBooking
 };
