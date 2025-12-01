@@ -6,6 +6,8 @@ import calculatePagination, { IOptions } from "../../helpers/paginationHelper";
 import { FilterParams } from "../../../constants";
 import { BookingStatus, Prisma } from "@prisma/client";
 import { bookingSearchableFields } from "./booking.constant";
+import { transactionGet } from "../../utils/transactionGet";
+import { stripe } from "../../helpers/stripe";
 
 
 // --- Create Booking (Tourist) ---
@@ -30,20 +32,70 @@ const createBooking = async (token: JwtPayload, payload: { listingId: string; da
     };
 
     // Save booking
-    const result = await prisma.booking.create({
-        data: {
-            listingId: payload.listingId,
-            touristId: token.userId,
-            guests: payload.guests,
-            date: new Date(payload.date),
-        },
-        include: {
-            listing: true,
-            tourist: true,
-        }
+    const result = await prisma.$transaction(async (tnx) => {
+        const listing = await tnx.listing.findUnique({
+            where: { id: payload.listingId },
+            select: { price: true },
+        });
+
+        if (!listing?.price) {
+            throw new AppError(httpStatus.BAD_GATEWAY, "No tour cost found");
+        };
+
+        const amount = Number(listing.price) * Number(payload.guests);
+
+        const bookingData = await tnx.booking.create({
+            data: {
+                listingId: payload.listingId,
+                touristId: token.userId,
+                guests: payload.guests,
+                date: new Date(payload.date),
+            },
+            include: {
+                listing: true,
+                tourist: true,
+            }
+        });
+
+        const transactionId = transactionGet();
+
+        const paymentData = await tnx.payment.create({
+            data: {
+                bookingId: bookingData.id,
+                transactionId,
+                amount
+            }
+        });
+
+        const session = await stripe.checkout.sessions.create({
+            mode: "payment",
+            payment_method_types: ["card"],
+            customer_email: token.email,
+            line_items: [
+                {
+                    price_data: {
+                        currency: "bdt",
+                        product_data: {
+                            name: `Tourist: ${isExistUser.name}`,
+                        },
+                        unit_amount: amount * 100,
+                    },
+                    quantity: 1,
+                },
+            ],
+            success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.CLIENT_URL}/payment-cancel`,
+            metadata: {
+                bookingId: bookingData.id,
+                paymentId: paymentData.id
+            },
+        });
+
+
+        return { paymentUrl: session.url };
     });
 
-    return result
+    return result;
 };
 
 const getMyBookings = async (token: JwtPayload, params: FilterParams, options: IOptions) => {
@@ -102,6 +154,7 @@ const getMyBookings = async (token: JwtPayload, params: FilterParams, options: I
         orderBy: { [sortBy || "createdAt"]: sortOrder || "asc" },
         include: {
             listing: true,
+            payment: true
         },
     });
 
@@ -175,6 +228,7 @@ export const getGuideBookings = async (token: JwtPayload, params: FilterParams, 
         include: {
             listing: true,
             tourist: true,
+            payment: true
         },
     });
 
