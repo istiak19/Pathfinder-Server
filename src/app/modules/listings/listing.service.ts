@@ -28,56 +28,69 @@ const createListing = async (token: JwtPayload, payload: ICreateListingPayload) 
 };
 
 const getAllListings = async (params: FilterParams, options: IOptions) => {
-    const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options)
-    const { searchTerm, ...filterData } = params;
+    const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
+    const { searchTerm, priceMin, priceMax, language, ...filterData } = params;
 
     const andConditions: Prisma.ListingWhereInput[] = [];
+
+    // Text Search (title, description, itinerary)
     if (searchTerm) {
         andConditions.push({
             OR: listingSearchableFields.map(field => ({
                 [field]: {
                     contains: searchTerm,
-                    mode: "insensitive"
-                }
-            }))
-        })
+                    mode: "insensitive",
+                },
+            })),
+        });
     };
 
-    // if (specialties && specialties.length > 0) {
-    //     andConditions.push({
-    //         doctorSpecialties: {
-    //             some: {
-    //                 specialities: {
-    //                     title: {
-    //                         contains: specialties,
-    //                         mode: "insensitive"
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     })
-    // };
-
+    // Normal Listing Filters (city, category, status, maxGroupSize)
     if (Object.keys(filterData).length > 0) {
         andConditions.push({
             AND: Object.keys(filterData).map(key => ({
                 [key]: {
-                    equals: (filterData as any)[key]
-                }
-            }))
-        })
+                    equals: (filterData as any)[key],
+                },
+            })),
+        });
     };
 
-    const whereConditions: Prisma.ListingWhereInput = andConditions.length > 0 ? {
-        AND: andConditions
-    } : {};
+    // Filter by Guide Language (guide.languages array)
+    if (language) {
+        andConditions.push({
+            guide: {
+                languages: {
+                    has: language,
+                },
+            },
+        });
+    };
 
+    //  Price Range Filter
+    if (priceMin || priceMax) {
+        andConditions.push({
+            price: {
+                gte: priceMin ? Number(priceMin) : undefined,
+                lte: priceMax ? Number(priceMax) : undefined,
+            },
+        });
+    };
+
+    // Final Prisma Where
+    const whereConditions: Prisma.ListingWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+
+    // Query Database
     const result = await prisma.listing.findMany({
         skip,
         take: limit,
         where: whereConditions,
         orderBy: { [sortBy]: sortOrder },
-        include: { guide: true, bookings: true, reviews: true }
+        include: {
+            guide: true,
+            bookings: true,
+            reviews: true,
+        },
     });
 
     return result;
