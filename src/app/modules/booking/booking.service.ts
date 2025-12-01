@@ -88,7 +88,7 @@ const getMyBookings = async (token: JwtPayload, params: FilterParams, options: I
         });
     }
 
-    // Only bookings for the guide's listings
+    // Only bookings for the tourist's listings
     andConditions.push({
         touristId: token.userId
     });
@@ -99,7 +99,7 @@ const getMyBookings = async (token: JwtPayload, params: FilterParams, options: I
         skip,
         take: limit,
         where: whereConditions,
-        orderBy: { [sortBy || "createdAt"]: sortOrder || "desc" },
+        orderBy: { [sortBy || "createdAt"]: sortOrder || "asc" },
         include: {
             listing: true,
         },
@@ -181,31 +181,73 @@ export const getGuideBookings = async (token: JwtPayload, params: FilterParams, 
     return result;
 };
 
-// getAllBookings: async () => {
-//   return prisma.booking.findMany({
-//     include: { listing: true, tourist: true },
-//     orderBy: { createdAt: "desc" },
-//   });
-// },
+const getAllBookings = async (token: JwtPayload, params: FilterParams, options: IOptions) => {
+    const isExistUser = await prisma.user.findUnique({
+        where: {
+            email: token.email
+        }
+    });
 
-// cancelBooking: async (decoded: JwtPayload, id: string) => {
-//   const booking = await prisma.booking.findUnique({
-//     where: { id },
-//   });
+    if (!isExistUser) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+    };
 
-//   if (!booking) throw new AppError(httpStatus.NOT_FOUND, "Booking not found");
+    const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
+    const { searchTerm, guestsMin, guestsMax, dateFrom, dateTo, ...filterData } = params;
 
-//   // Only owner or admin can cancel
-//   if (decoded.role !== "ADMIN" && booking.touristId !== decoded.userId) {
-//     throw new AppError(httpStatus.FORBIDDEN, "Not allowed");
-//   }
+    const andConditions: Prisma.BookingWhereInput[] = [];
 
-//   const result = await prisma.booking.delete({
-//     where: { id },
-//   });
+    // Text search
+    if (searchTerm) {
+        andConditions.push({
+            OR: bookingSearchableFields.map(field => ({
+                [field]: { contains: searchTerm, mode: "insensitive" },
+            })),
+        });
+    }
 
-//   return result;
-// },
+    // Exact filters
+    Object.keys(filterData).forEach(key => {
+        if (filterData[key] !== undefined) {
+            andConditions.push({ [key]: { equals: filterData[key] } });
+        }
+    });
+
+    // Guests range filter
+    if (guestsMin || guestsMax) {
+        andConditions.push({
+            guests: {
+                gte: guestsMin ? Number(guestsMin) : undefined,
+                lte: guestsMax ? Number(guestsMax) : undefined,
+            },
+        });
+    }
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+        andConditions.push({
+            date: {
+                gte: dateFrom ? new Date(dateFrom) : undefined,
+                lte: dateTo ? new Date(dateTo) : undefined,
+            },
+        });
+    };
+
+    const whereConditions: Prisma.BookingWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+
+    const result = await prisma.booking.findMany({
+        skip,
+        take: limit,
+        where: whereConditions,
+        orderBy: { [sortBy || "createdAt"]: (sortOrder || "asc") as "asc" | "desc" },
+        include: {
+            listing: true,
+            tourist: true,
+        },
+    });
+
+    return result;
+}
 
 const cancelBooking = async (token: JwtPayload, id: string) => {
     const isExistUser = await prisma.user.findUnique({
@@ -278,6 +320,7 @@ export const bookingService = {
     createBooking,
     getMyBookings,
     getGuideBookings,
+    getAllBookings,
     updateBookingStatus,
     cancelBooking
 };
