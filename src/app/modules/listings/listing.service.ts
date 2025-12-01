@@ -9,7 +9,6 @@ import { Prisma } from "@prisma/client";
 import { listingSearchableFields } from "./listing.constant";
 
 const createListing = async (token: JwtPayload, payload: ICreateListingPayload) => {
-
     const isExistUser = await prisma.user.findUnique({
         where: {
             email: token.email

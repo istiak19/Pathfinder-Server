@@ -30,6 +30,20 @@ const createBooking = catchAsync(async (req: Request, res: Response) => {
 //   });
 // }),
 
+const getMyBookings = catchAsync(async (req: Request, res: Response) => {
+    const decoded = req.user as JwtPayload;
+    const filters = pick(req.query, bookingFilterableFields) // searching , filtering
+    const options = pick(req.query, ["page", "limit", "sortBy", "sortOrder"]) // pagination and sorting
+    const result = await bookingService.getMyBookings(decoded, filters, options);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "My bookings",
+        data: result,
+    });
+});
+
 const getGuideBookings = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
     const filters = pick(req.query, bookingFilterableFields) // searching , filtering
@@ -65,6 +79,18 @@ const getGuideBookings = catchAsync(async (req: Request, res: Response) => {
 //     data: result,
 //   });
 // }),
+const updateBookingStatus = catchAsync(async (req: Request, res: Response) => {
+    const decoded = req.user as JwtPayload;
+    const booking = await bookingService.updateBookingStatus(decoded, req.params.id, req.body);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Booking updated successfully",
+        data: booking,
+    });
+});
+
 const cancelBooking = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
     const booking = await bookingService.cancelBooking(decoded, req.params.id);
@@ -77,21 +103,10 @@ const cancelBooking = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-//   updateBookingStatus: catchAsync(async (req, res) => {
-//     const decoded = req.user; // guide/admin
-//     const result = await bookingService.updateBookingStatus(decoded, req.params.id, req.body.status);
-
-//     sendResponse(res, {
-//       success: true,
-//       statusCode: httpStatus.OK,
-//       message: "Booking updated successfully",
-//       data: result,
-//     });
-//   })
-// };
-
 export const bookingController = {
     createBooking,
+    getMyBookings,
     getGuideBookings,
+    updateBookingStatus,
     cancelBooking
 };

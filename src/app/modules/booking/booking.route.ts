@@ -3,29 +3,17 @@ import { bookingController } from "./booking.controller";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { checkAuth } from "../../middlewares/checkAuth";
 import { Role } from "@prisma/client";
-import { createBookingZodSchema } from "./booking.validation";
+import { createBookingZodSchema, updateBookingStatusZodSchema } from "./booking.validation";
 
 const router = express.Router();
 
 router.post("/", checkAuth(Role.TOURIST), validateRequest(createBookingZodSchema), bookingController.createBooking);
-
-// // Guide Admin accepts/rejects
-// router.patch(
-//     "/:id",
-//     checkAuth(Role.GUIDE, Role.ADMIN),
-//     validateRequest(updateBookingStatusZodSchema),
-//     bookingController.updateBookingStatus
-// );
-
-// // Get my bookings (tourist)
-// router.get(
-//     "/me",
-//     checkAuth(Role.TOURIST),
-//     bookingController.getMyBookings
-// );
-
-// // Guide → bookings for his listings
+// Get my bookings (tourist)
+router.get("/me", checkAuth(Role.TOURIST), bookingController.getMyBookings);
+// Guide → bookings for his listings
 router.get("/guide/my", checkAuth(Role.GUIDE), bookingController.getGuideBookings);
+// // Guide Admin accepts/rejects
+router.patch("/:id", checkAuth(Role.GUIDE, Role.ADMIN), validateRequest(updateBookingStatusZodSchema), bookingController.updateBookingStatus);
 
 // // Admin → all bookings
 // router.get(
