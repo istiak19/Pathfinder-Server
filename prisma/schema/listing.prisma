@@ -10,7 +10,7 @@ model Listing {
     category      ListingCategory
     averageRating Float           @default(0.0)
     city          String
-    images        String[] // Multiple images stored as array
+    images        String[]
     status        String?         @default("active")
 
     // Relation
