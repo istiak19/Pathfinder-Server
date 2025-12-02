@@ -11,39 +11,30 @@ import { stripe } from "../../helpers/stripe";
 
 
 // --- Create Booking (Tourist) ---
-const createBooking = async (token: JwtPayload, payload: { listingId: string; date: string, guests: number }) => {
+const createBooking = async (token: JwtPayload, payload: { listingId: string; date: string; guests: number }) => {
     const isExistUser = await prisma.user.findUnique({
-        where: {
-            email: token.email
-        }
+        where: { email: token.email },
     });
 
     if (!isExistUser) {
         throw new AppError(httpStatus.BAD_REQUEST, "User not found");
-    };
+    }
 
     // Check listing exists
     const listing = await prisma.listing.findUnique({
         where: { id: payload.listingId },
+        select: { price: true },
     });
 
-    if (!listing) {
-        throw new AppError(httpStatus.NOT_FOUND, "Listing not found");
-    };
+    if (!listing?.price) {
+        throw new AppError(httpStatus.NOT_FOUND, "Listing not found or no price available");
+    }
 
-    // Save booking
-    const result = await prisma.$transaction(async (tnx) => {
-        const listing = await tnx.listing.findUnique({
-            where: { id: payload.listingId },
-            select: { price: true },
-        });
+    const amount = listing.price * payload.guests;
+    const transactionId = transactionGet();
 
-        if (!listing?.price) {
-            throw new AppError(httpStatus.BAD_GATEWAY, "No tour cost found");
-        };
-
-        const amount = Number(listing.price) * Number(payload.guests);
-
+    // 1️⃣ Transaction for DB operations ONLY
+    const { bookingData, paymentData } = await prisma.$transaction(async (tnx) => {
         const bookingData = await tnx.booking.create({
             data: {
                 listingId: payload.listingId,
@@ -51,52 +42,49 @@ const createBooking = async (token: JwtPayload, payload: { listingId: string; da
                 guests: payload.guests,
                 date: new Date(payload.date),
             },
-            include: {
-                listing: true,
-                tourist: true,
-            }
         });
-
-        const transactionId = transactionGet();
 
         const paymentData = await tnx.payment.create({
             data: {
                 bookingId: bookingData.id,
                 transactionId,
-                amount
-            }
-        });
-
-        const session = await stripe.checkout.sessions.create({
-            mode: "payment",
-            payment_method_types: ["card"],
-            customer_email: token.email,
-            line_items: [
-                {
-                    price_data: {
-                        currency: "bdt",
-                        product_data: {
-                            name: `Tourist: ${isExistUser.name}`,
-                        },
-                        unit_amount: amount * 100,
-                    },
-                    quantity: 1,
-                },
-            ],
-            success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.CLIENT_URL}/payment-cancel`,
-            metadata: {
-                bookingId: bookingData.id,
-                paymentId: paymentData.id
+                amount,
             },
         });
 
-
-        return { paymentUrl: session.url };
+        return { bookingData, paymentData };
     });
 
-    return result;
+    // 2️⃣ Stripe session OUTSIDE transaction (IMPORTANT!)
+    const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        customer_email: token.email,
+        line_items: [
+            {
+                price_data: {
+                    currency: "bdt",
+                    product_data: {
+                        name: `Tour booking for ${isExistUser.name}`,
+                    },
+                    unit_amount: amount * 100,
+                },
+                quantity: 1,
+            },
+        ],
+        success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.CLIENT_URL}/payment-cancel`,
+        metadata: {
+            bookingId: bookingData.id,
+            paymentId: paymentData.id,
+        },
+    });
+
+    return {
+        paymentUrl: session.url,
+    };
 };
+
 
 const getMyBookings = async (token: JwtPayload, params: FilterParams, options: IOptions) => {
     const isExistUser = await prisma.user.findUnique({
