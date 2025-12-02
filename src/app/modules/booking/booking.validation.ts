@@ -7,7 +7,7 @@ export const createBookingZodSchema = z.object({
 });
 
 export const updateBookingStatusZodSchema = z.object({
-    status: z.enum(["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED"], {
+    status: z.enum(["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "REJECTED", "ACCEPTED"], {
         message: "Invalid booking status"
     }),
 });

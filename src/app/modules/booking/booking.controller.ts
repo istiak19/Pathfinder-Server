@@ -19,17 +19,6 @@ const createBooking = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-//   getMyBookings: catchAsync(async (req, res) => {
-//   const result = await bookingService.getMyBookings(req.user.userId);
-
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: httpStatus.OK,
-//     message: "My bookings",
-//     data: result,
-//   });
-// }),
-
 const getMyBookings = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
     const filters = pick(req.query, bookingFilterableFields) // searching , filtering

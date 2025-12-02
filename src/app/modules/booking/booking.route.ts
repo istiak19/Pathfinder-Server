@@ -7,7 +7,7 @@ import { createBookingZodSchema, updateBookingStatusZodSchema } from "./booking.
 
 const router = express.Router();
 
-router.post("/", checkAuth(Role.TOURIST, Role.ADMIN), validateRequest(createBookingZodSchema), bookingController.createBooking);
+router.post("/", checkAuth(Role.TOURIST), validateRequest(createBookingZodSchema), bookingController.createBooking);
 // Get my bookings (tourist)
 router.get("/me", checkAuth(Role.TOURIST, Role.ADMIN), bookingController.getMyBookings);
 // Admin → all bookings
