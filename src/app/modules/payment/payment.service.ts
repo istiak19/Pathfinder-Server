@@ -136,6 +136,58 @@ const handleStripeWebhookEvent = async (event: Stripe.Event) => {
     }
 };
 
+// const processGuidePayout = async (bookingId: string) => {
+//     // 1️⃣ Booking get
+//     const booking = await prisma.booking.findUnique({
+//         where: { id: bookingId },
+//         include: { listing: { include: { guide: true } } },
+//     });
+
+//     if (!booking) {
+//         throw new AppError(404, "Booking not found");
+//     }
+
+//     // 2️⃣ Check if tour is completed
+//     if (booking.status !== BookingStatus.COMPLETED) {
+//         throw new AppError(400, "Payout can only be processed for COMPLETED tours");
+//     }
+
+//     const guide = booking.listing.guide;
+
+//     if (!guide) {
+//         throw new AppError(404, "Guide not found for this listing");
+//     }
+
+//     // 3️⃣ Calculate payout
+//     // Example: payout = dailyRate × number of days (or guests)
+//     const dailyRate = booking.listing.dailyRate;
+//     const numberOfDays = booking.days || 1; // assume 1 day if not stored
+//     const totalPayout = dailyRate * numberOfDays * booking.guests;
+
+//     // 4️⃣ Create payout record
+//     const payout = await prisma.payout.create({
+//         data: {
+//             guideId: guide.id,
+//             bookingId: booking.id,
+//             amount: totalPayout,
+//             status: PaymentStatus.PENDING, // mark as pending until transferred
+//         },
+//     });
+
+//     // 5️⃣ Optionally: mark booking as payoutProcessed
+//     await prisma.booking.update({
+//         where: { id: booking.id },
+//         data: { payoutProcessed: true },
+//     });
+
+//     return {
+//         message: "Payout processed successfully",
+//         guideId: guide.id,
+//         bookingId: booking.id,
+//         amount: totalPayout,
+//     };
+// };
+
 export const paymentService = {
     handleStripeWebhookEvent,
     createPayment
