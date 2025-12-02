@@ -9,11 +9,13 @@ const router = express.Router();
 
 router.post("/", checkAuth(Role.TOURIST), validateRequest(createBookingZodSchema), bookingController.createBooking);
 // Get my bookings (tourist)
-router.get("/me", checkAuth(Role.TOURIST, Role.ADMIN), bookingController.getMyBookings);
+router.get("/me", checkAuth(Role.TOURIST), bookingController.getMyBookings);
 // Admin → all bookings
 router.get("/", checkAuth(Role.ADMIN), bookingController.getAllBookings);
 // Guide → bookings for his listings
 router.get("/guide/my", checkAuth(Role.GUIDE), bookingController.getGuideBookings);
+// Get id my bookings (tourist)
+router.get("/me/:id", checkAuth(Role.TOURIST), bookingController.getSingleMyBookings);
 // Guide Admin accepts/rejects
 router.patch("/:id", checkAuth(Role.GUIDE, Role.ADMIN), validateRequest(updateBookingStatusZodSchema), bookingController.updateBookingStatus);
 // Cancel

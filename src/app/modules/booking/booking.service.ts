@@ -169,7 +169,32 @@ const getMyBookings = async (token: JwtPayload, params: FilterParams, options: I
     });
 
     return result;
-}
+};
+
+const getSingleMyBookings = async (token: JwtPayload, id: string) => {
+    const isExistUser = await prisma.user.findUnique({
+        where: {
+            email: token.email
+        }
+    });
+
+    if (!isExistUser) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+    };
+
+    const booking = await prisma.booking.findUnique({
+        where: { id },
+        include: {
+            listing: true,
+            payment: true,
+            reviews: true
+        }
+    });
+
+    if (!booking) throw new AppError(httpStatus.NOT_FOUND, "Listing not found");
+
+    return booking;
+};
 
 export const getGuideBookings = async (token: JwtPayload, params: FilterParams, options: IOptions) => {
     const isExistUser = await prisma.user.findUnique({
@@ -313,7 +338,7 @@ const getAllBookings = async (token: JwtPayload, params: FilterParams, options: 
     });
 
     return result;
-}
+};
 
 const cancelBooking = async (token: JwtPayload, id: string) => {
     const isExistUser = await prisma.user.findUnique({
@@ -424,6 +449,7 @@ const updateBookingStatus = async (token: JwtPayload, id: string, status: { stat
 export const bookingService = {
     createBooking,
     getMyBookings,
+    getSingleMyBookings,
     getGuideBookings,
     getAllBookings,
     updateBookingStatus,
