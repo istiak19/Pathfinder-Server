@@ -334,6 +334,10 @@ const cancelBooking = async (token: JwtPayload, id: string) => {
         throw new AppError(httpStatus.NOT_FOUND, "Booking not found")
     };
 
+    if (booking.status.toUpperCase() !== "PENDING") {
+        throw new AppError(httpStatus.BAD_REQUEST, "Only bookings with 'PENDING' status can be deleted.");
+    }
+
     const result = await prisma.booking.delete({
         where: { id },
     });
@@ -368,10 +372,39 @@ const updateBookingStatus = async (token: JwtPayload, id: string, status: { stat
         throw new AppError(httpStatus.FORBIDDEN, "Not allowed");
     };
 
-    // Restrict status updates
-    const allowedStatuses = ["PENDING", "CONFIRMED"];
-    if (allowedStatuses.includes(status.status.toUpperCase())) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Only 'PENDING' or 'CONFIRMED' bookings can be updated. Other statuses cannot be edited.");
+    const currentStatus = booking.status.toUpperCase();
+    const newStatus = status.status.toUpperCase();
+
+    // Status change rules
+
+    // 1. REJECTED or CANCELLED → no changes allowed
+    if (currentStatus === "REJECTED" || currentStatus === "CANCELLED") {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            `Cannot change booking status because it is already '${currentStatus}'`
+        );
+    };
+
+    // 2. CONFIRMED → cannot change to PENDING, ACCEPTED, REJECTED, CANCELLED
+    if (currentStatus === "CONFIRMED") {
+        const blockedStatuses = ["PENDING", "ACCEPTED", "REJECTED", "CANCELLED"];
+        if (blockedStatuses.includes(newStatus)) {
+            throw new AppError(
+                httpStatus.BAD_REQUEST,
+                `Cannot change status from 'CONFIRMED' to '${newStatus}'`
+            );
+        };
+    };
+
+    // 3. ACCEPTED → cannot change to PENDING, REJECTED, CANCELLED
+    if (currentStatus === "ACCEPTED") {
+        const blockedStatuses = ["PENDING", "REJECTED", "CANCELLED"];
+        if (blockedStatuses.includes(newStatus)) {
+            throw new AppError(
+                httpStatus.BAD_REQUEST,
+                `Cannot change status from 'ACCEPTED' to '${newStatus}'`
+            );
+        }
     };
 
     const result = await prisma.booking.update({
