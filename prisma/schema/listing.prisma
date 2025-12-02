@@ -1,16 +1,17 @@
 model Listing {
-    id           String   @id @default(uuid())
-    title        String
-    description  String
-    itinerary    String?
-    price        Int
-    duration     String
-    meetingPoint String
-    maxGroupSize Int
-    category     ListingCategory
-    city         String
-    images       String[] // Multiple images stored as array
-    status       String?  @default("active")
+    id            String          @id @default(uuid())
+    title         String
+    description   String
+    itinerary     String?
+    price         Int
+    duration      String
+    meetingPoint  String
+    maxGroupSize  Int
+    category      ListingCategory
+    averageRating Float           @default(0.0)
+    city          String
+    images        String[] // Multiple images stored as array
+    status        String?         @default("active")
 
     // Relation
     guideId String
