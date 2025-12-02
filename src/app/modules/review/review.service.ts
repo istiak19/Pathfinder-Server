@@ -26,6 +26,10 @@ const createReview = async (token: JwtPayload, payload: IReview) => {
         throw new AppError(httpStatus.BAD_REQUEST, "Appointment not found");
     };
 
+    if (isExistBooking.status !== "COMPLETED") {
+        throw new AppError(httpStatus.FORBIDDEN, "You can only review after the tour is completed");
+    };
+
     const reviewData = await prisma.$transaction(async (tnx) => {
         const result = await tnx.review.create({
             data: {
