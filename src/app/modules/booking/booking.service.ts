@@ -18,72 +18,93 @@ const createBooking = async (token: JwtPayload, payload: { listingId: string; da
 
     if (!isExistUser) {
         throw new AppError(httpStatus.BAD_REQUEST, "User not found");
-    }
+    };
 
-    // Check listing exists
-    const listing = await prisma.listing.findUnique({
-        where: { id: payload.listingId },
-        select: { price: true },
-    });
-
-    if (!listing?.price) {
-        throw new AppError(httpStatus.NOT_FOUND, "Listing not found or no price available");
-    }
-
-    const amount = listing.price * payload.guests;
-    const transactionId = transactionGet();
-
-    // 1️⃣ Transaction for DB operations ONLY
-    const { bookingData, paymentData } = await prisma.$transaction(async (tnx) => {
-        const bookingData = await tnx.booking.create({
-            data: {
-                listingId: payload.listingId,
-                touristId: token.userId,
-                guests: payload.guests,
-                date: new Date(payload.date),
-            },
-        });
-
-        const paymentData = await tnx.payment.create({
-            data: {
-                bookingId: bookingData.id,
-                transactionId,
-                amount,
-            },
-        });
-
-        return { bookingData, paymentData };
-    });
-
-    // 2️⃣ Stripe session OUTSIDE transaction (IMPORTANT!)
-    const session = await stripe.checkout.sessions.create({
-        mode: "payment",
-        payment_method_types: ["card"],
-        customer_email: token.email,
-        line_items: [
-            {
-                price_data: {
-                    currency: "bdt",
-                    product_data: {
-                        name: `Tour booking for ${isExistUser.name}`,
-                    },
-                    unit_amount: amount * 100,
-                },
-                quantity: 1,
-            },
-        ],
-        success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.CLIENT_URL}/payment-cancel`,
-        metadata: {
-            bookingId: bookingData.id,
-            paymentId: paymentData.id,
+    const result = await prisma.booking.create({
+        data: {
+            listingId: payload.listingId,
+            touristId: token.userId,
+            guests: payload.guests,
+            date: new Date(payload.date),
         },
     });
 
-    return {
-        paymentUrl: session.url,
-    };
+    return result;
 };
+
+// const createBooking = async (token: JwtPayload, payload: { listingId: string; date: string; guests: number }) => {
+//     const isExistUser = await prisma.user.findUnique({
+//         where: { email: token.email },
+//     });
+
+//     if (!isExistUser) {
+//         throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+//     }
+
+//     // Check listing exists
+//     const listing = await prisma.listing.findUnique({
+//         where: { id: payload.listingId },
+//         select: { price: true },
+//     });
+
+//     if (!listing?.price) {
+//         throw new AppError(httpStatus.NOT_FOUND, "Listing not found or no price available");
+//     }
+
+//     const amount = listing.price * payload.guests;
+//     const transactionId = transactionGet();
+
+//     // 1️⃣ Transaction for DB operations ONLY
+//     const { bookingData, paymentData } = await prisma.$transaction(async (tnx) => {
+//         const bookingData = await tnx.booking.create({
+//             data: {
+//                 listingId: payload.listingId,
+//                 touristId: token.userId,
+//                 guests: payload.guests,
+//                 date: new Date(payload.date),
+//             },
+//         });
+
+//         const paymentData = await tnx.payment.create({
+//             data: {
+//                 bookingId: bookingData.id,
+//                 transactionId,
+//                 amount,
+//             },
+//         });
+
+//         return { bookingData, paymentData };
+//     });
+
+//     // 2️⃣ Stripe session OUTSIDE transaction (IMPORTANT!)
+//     const session = await stripe.checkout.sessions.create({
+//         mode: "payment",
+//         payment_method_types: ["card"],
+//         customer_email: token.email,
+//         line_items: [
+//             {
+//                 price_data: {
+//                     currency: "bdt",
+//                     product_data: {
+//                         name: `Tour booking for ${isExistUser.name}`,
+//                     },
+//                     unit_amount: amount * 100,
+//                 },
+//                 quantity: 1,
+//             },
+//         ],
+//         success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+//         cancel_url: `${process.env.CLIENT_URL}/payment-cancel`,
+//         metadata: {
+//             bookingId: bookingData.id,
+//             paymentId: paymentData.id,
+//         },
+//     });
+
+//     return {
+//         paymentUrl: session.url,
+//     };
+// };
 
 
 const getMyBookings = async (token: JwtPayload, params: FilterParams, options: IOptions) => {
@@ -148,7 +169,32 @@ const getMyBookings = async (token: JwtPayload, params: FilterParams, options: I
     });
 
     return result;
-}
+};
+
+const getSingleMyBookings = async (token: JwtPayload, id: string) => {
+    const isExistUser = await prisma.user.findUnique({
+        where: {
+            email: token.email
+        }
+    });
+
+    if (!isExistUser) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+    };
+
+    const booking = await prisma.booking.findUnique({
+        where: { id },
+        include: {
+            listing: true,
+            payment: true,
+            reviews: true
+        }
+    });
+
+    if (!booking) throw new AppError(httpStatus.NOT_FOUND, "Listing not found");
+
+    return booking;
+};
 
 export const getGuideBookings = async (token: JwtPayload, params: FilterParams, options: IOptions) => {
     const isExistUser = await prisma.user.findUnique({
@@ -292,7 +338,7 @@ const getAllBookings = async (token: JwtPayload, params: FilterParams, options: 
     });
 
     return result;
-}
+};
 
 const cancelBooking = async (token: JwtPayload, id: string) => {
     const isExistUser = await prisma.user.findUnique({
@@ -312,6 +358,10 @@ const cancelBooking = async (token: JwtPayload, id: string) => {
     if (!booking) {
         throw new AppError(httpStatus.NOT_FOUND, "Booking not found")
     };
+
+    if (booking.status.toUpperCase() !== "PENDING") {
+        throw new AppError(httpStatus.BAD_REQUEST, "Only bookings with 'PENDING' status can be deleted.");
+    }
 
     const result = await prisma.booking.delete({
         where: { id },
@@ -347,6 +397,41 @@ const updateBookingStatus = async (token: JwtPayload, id: string, status: { stat
         throw new AppError(httpStatus.FORBIDDEN, "Not allowed");
     };
 
+    const currentStatus = booking.status.toUpperCase();
+    const newStatus = status.status.toUpperCase();
+
+    // Status change rules
+
+    // 1. REJECTED or CANCELLED → no changes allowed
+    if (currentStatus === "REJECTED" || currentStatus === "CANCELLED") {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            `Cannot change booking status because it is already '${currentStatus}'`
+        );
+    };
+
+    // 2. CONFIRMED → cannot change to PENDING, ACCEPTED, REJECTED, CANCELLED
+    if (currentStatus === "CONFIRMED") {
+        const blockedStatuses = ["PENDING", "ACCEPTED", "REJECTED", "CANCELLED"];
+        if (blockedStatuses.includes(newStatus)) {
+            throw new AppError(
+                httpStatus.BAD_REQUEST,
+                `Cannot change status from 'CONFIRMED' to '${newStatus}'`
+            );
+        };
+    };
+
+    // 3. ACCEPTED → cannot change to PENDING, REJECTED, CANCELLED
+    if (currentStatus === "ACCEPTED") {
+        const blockedStatuses = ["PENDING", "REJECTED", "CANCELLED"];
+        if (blockedStatuses.includes(newStatus)) {
+            throw new AppError(
+                httpStatus.BAD_REQUEST,
+                `Cannot change status from 'ACCEPTED' to '${newStatus}'`
+            );
+        }
+    };
+
     const result = await prisma.booking.update({
         where: { id },
         data: {
@@ -359,11 +444,12 @@ const updateBookingStatus = async (token: JwtPayload, id: string, status: { stat
     });
 
     return result;
-}
+};
 
 export const bookingService = {
     createBooking,
     getMyBookings,
+    getSingleMyBookings,
     getGuideBookings,
     getAllBookings,
     updateBookingStatus,

@@ -4,13 +4,12 @@ import cookieParser from "cookie-parser";
 import notFound from './app/middlewares/notFound';
 import config from './config';
 import router from './app/routes';
-import globalErrorHandler from "./app/middlewares/globalErrorHandler";
-import { PaymentController } from "./app/modules/payment/payment.controller";
+import globalErrorHandler from "./app/middlewares/globalErrorHandler";import { paymentController } from "./app/modules/payment/payment.controller";
 // import cron from 'node-cron';
 
 const app: Application = express();
 
-app.post("/webhook", express.raw({ type: "application/json" }), PaymentController.handleStripeWebhookEvent);
+app.post("/webhook", express.raw({ type: "application/json" }), paymentController.handleStripeWebhookEvent);
 
 app.use(cors({
     origin: 'http://localhost:3000',

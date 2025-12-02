@@ -19,17 +19,6 @@ const createBooking = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-//   getMyBookings: catchAsync(async (req, res) => {
-//   const result = await bookingService.getMyBookings(req.user.userId);
-
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: httpStatus.OK,
-//     message: "My bookings",
-//     data: result,
-//   });
-// }),
-
 const getMyBookings = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
     const filters = pick(req.query, bookingFilterableFields) // searching , filtering
@@ -40,6 +29,18 @@ const getMyBookings = catchAsync(async (req: Request, res: Response) => {
         success: true,
         statusCode: httpStatus.OK,
         message: "My bookings",
+        data: result,
+    });
+});
+
+const getSingleMyBookings = catchAsync(async (req: Request, res: Response) => {
+    const decoded = req.user as JwtPayload;
+    const result = await bookingService.getSingleMyBookings(decoded, req.params.id);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "My booking",
         data: result,
     });
 });
@@ -99,6 +100,7 @@ const cancelBooking = catchAsync(async (req: Request, res: Response) => {
 export const bookingController = {
     createBooking,
     getMyBookings,
+    getSingleMyBookings,
     getGuideBookings,
     getAllBookings,
     updateBookingStatus,

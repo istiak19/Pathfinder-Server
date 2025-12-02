@@ -2,8 +2,21 @@ import httpStatus from 'http-status';
 import { Request, Response } from "express";
 import sendResponse from "../../shared/sendResponse";
 import { stripe } from "../../helpers/stripe";
-import { PaymentService } from "./payment.service";
 import { catchAsync } from '../../shared/catchAsync';
+import { JwtPayload } from 'jsonwebtoken';
+import { paymentService } from './payment.service';
+
+const createPayment = catchAsync(async (req: Request, res: Response) => {
+    const decoded = req.user as JwtPayload;
+    const payment = await paymentService.createPayment(decoded, req.body);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Payment request submitted",
+        data: payment,
+    });
+});
 
 const handleStripeWebhookEvent = catchAsync(async (req: Request, res: Response) => {
 
@@ -17,7 +30,7 @@ const handleStripeWebhookEvent = catchAsync(async (req: Request, res: Response) 
         console.error("⚠️ Webhook signature verification failed:", err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
-    const result = await PaymentService.handleStripeWebhookEvent(event);
+    const result = await paymentService.handleStripeWebhookEvent(event);
     console.log(result)
 
     sendResponse(res, {
@@ -28,6 +41,7 @@ const handleStripeWebhookEvent = catchAsync(async (req: Request, res: Response) 
     });
 });
 
-export const PaymentController = {
+export const paymentController = {
+    createPayment,
     handleStripeWebhookEvent
 };
