@@ -142,7 +142,8 @@ const getMyBookings = async (token: JwtPayload, params: FilterParams, options: I
         orderBy: { [sortBy || "createdAt"]: sortOrder || "asc" },
         include: {
             listing: true,
-            payment: true
+            payment: true,
+            reviews: true
         },
     });
 
@@ -216,7 +217,8 @@ export const getGuideBookings = async (token: JwtPayload, params: FilterParams, 
         include: {
             listing: true,
             tourist: true,
-            payment: true
+            payment: true,
+            reviews: true
         },
     });
 
@@ -285,6 +287,7 @@ const getAllBookings = async (token: JwtPayload, params: FilterParams, options: 
         include: {
             listing: true,
             tourist: true,
+            reviews: true
         },
     });
 

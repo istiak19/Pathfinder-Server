@@ -46,14 +46,14 @@ const createReview = async (token: JwtPayload, payload: IReview) => {
             }
         });
 
-        // await tnx.doctor.update({
-        //     where: {
-        //         id: isExistAppointment.doctorId
-        //     },
-        //     data: {
-        //         averageRating: avgRating._avg.rating as number
-        //     }
-        // });
+        await tnx.listing.update({
+            where: {
+                id: isExistBooking.listingId
+            },
+            data: {
+                averageRating: avgRating._avg.rating ?? 0
+            }
+        });
 
         return result;
     });
