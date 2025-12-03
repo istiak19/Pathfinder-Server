@@ -6,6 +6,7 @@ import sendResponse from '../../shared/sendResponse';
 import { JwtPayload } from 'jsonwebtoken';
 import pick from '../../helpers/pick';
 import { userFilterableFields } from './user.constant';
+import { uploadToCloudinary } from '../../../config/cloudinary.config';
 
 const createUser = catchAsync(async (req, res) => {
     const user = await userService.createUser(req.body);
@@ -46,7 +47,22 @@ const getSingleUser = catchAsync(async (req, res) => {
 
 const updateUser = catchAsync(async (req, res) => {
     const decoded = req.user as JwtPayload;
-    const profilePic = req.file?.path;
+    let profilePic: string | undefined;
+
+    if (req.file) {
+        // Create a unique file name
+        const fileName =
+            Math.random().toString(36).substring(2) +
+            "-" +
+            Date.now() +
+            "-" +
+            req.file.originalname.replace(/\s+/g, "-").toLowerCase();
+
+        // Upload to Cloudinary
+        const cloudRes: any = await uploadToCloudinary(req.file.buffer, fileName);
+        profilePic = cloudRes.secure_url;
+    }
+
     let bodyData: any = req.body;
     if (req.body.data) {
         bodyData = JSON.parse(req.body.data);
@@ -54,7 +70,7 @@ const updateUser = catchAsync(async (req, res) => {
 
     const payload = {
         profilePic,
-        ...bodyData
+        ...bodyData,
     };
 
     const user = await userService.updateUser(decoded, req.params.id, payload);
