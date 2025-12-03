@@ -8,9 +8,6 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-/**
- * Buffer কে Cloudinary তে আপলোড করে এবং UploadApiResponse রিটার্ন করে
- */
 export const uploadToCloudinary = (fileBuffer: Buffer, fileName: string): Promise<UploadApiResponse> => {
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(

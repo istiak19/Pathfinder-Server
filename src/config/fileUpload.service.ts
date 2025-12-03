@@ -1,9 +1,6 @@
 import { uploadToCloudinary } from "./cloudinary.config";
 import { UploadApiResponse } from "cloudinary";
 
-/**
- * একাধিক ফাইল আপলোড এবং Cloudinary URL রিটার্ন
- */
 export const uploadMultipleFiles = async (
     files: Express.Multer.File[],
     folder: string = "uploads"
