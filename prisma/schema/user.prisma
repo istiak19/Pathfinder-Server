@@ -8,11 +8,14 @@ model User {
     bio        String?
     isVerified Boolean?   @default(false)
     status     UserStatus @default(Active)
-    languages  String[]
+    languages  String[] // Common Field: Languages Spoken
 
     // Guide-specific fields
-    expertise String[] @default([])
-    dailyRate Int?
+    expertise String[] @default([]) // e.g., History, Nightlife, Shopping
+    dailyRate Int? // How much they charge per day
+
+    // Tourist-specific fields
+    travelPreferences String[] @default([]) // Travel preferences (added for tourists)
 
     // Auth provider info
     authProvider String? // "credentials" | "google"
