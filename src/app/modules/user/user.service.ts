@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 import { JwtPayload } from "jsonwebtoken";
 import { FilterParams } from "../../../constants";
 import calculatePagination, { IOptions } from "../../helpers/paginationHelper";
-import { Prisma } from "@prisma/client";
+import { Prisma, Role, UserStatus } from "@prisma/client";
 import { userSearchableFields } from "./user.constant";
 
 const getAllUsers = async (token: JwtPayload, params: FilterParams, options: IOptions) => {
@@ -198,6 +198,29 @@ const updateUserProfile = async (token: JwtPayload, payload: Partial<CreateUserP
     return updatedUser;
 };
 
+const updateUserStatus = async (token: JwtPayload, userId: string, status: UserStatus) => {
+    // Check if requester is ADMIN
+    if (token.role !== Role.ADMIN) {
+        throw new AppError(httpStatus.UNAUTHORIZED, "Only admin can update user status");
+    }
+
+    const isExistUser = await prisma.user.findUnique({
+        where: { id: userId }
+    });
+
+    if (!isExistUser) {
+        throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+    // Only update status
+    const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { status }
+    });
+
+    return updatedUser;
+};
+
 const deleteUser = async (token: JwtPayload, id: string) => {
     const isExistUser = await prisma.user.findUnique({
         where: {
@@ -219,5 +242,6 @@ export const userService = {
     getAllUsers,
     getSingleUser,
     updateUserProfile,
+    updateUserStatus,
     deleteUser
 };
