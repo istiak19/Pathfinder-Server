@@ -6,19 +6,16 @@ import { catchAsync } from "../../shared/catchAsync";
 import { JwtPayload } from "jsonwebtoken";
 import pick from "../../helpers/pick";
 import { listingFilterableFields } from "./listing.constant";
+import { uploadMultipleFiles } from "../../../config/multer.config";
 
 const createListing = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
-    const image = (req.files as Express.Multer.File[]).map(file => file.path);
-    let bodyData: any = req.body;
-    if (req.body.data) {
-        bodyData = JSON.parse(req.body.data);
-    }
+    const images = req.files ? await uploadMultipleFiles(req.files as Express.Multer.File[], "listings") : [];
 
-    const payload = {
-        images: image,
-        ...bodyData
-    };
+    let bodyData: any = req.body;
+    if (req.body.data) bodyData = JSON.parse(req.body.data);
+
+    const payload = { images, ...bodyData };
     const listing = await listingService.createListing(decoded, payload);
 
     sendResponse(res, {
@@ -56,16 +53,12 @@ const getSingleListing = catchAsync(async (req: Request, res: Response) => {
 
 const updateListing = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
-    const image = (req.files as Express.Multer.File[]).map(file => file.path);
-    let bodyData: any = req.body;
-    if (req.body.data) {
-        bodyData = JSON.parse(req.body.data);
-    }
+    const images = req.files ? await uploadMultipleFiles(req.files as Express.Multer.File[], "listings") : [];
 
-    const payload = {
-        images: image,
-        ...bodyData
-    };
+    let bodyData: any = req.body;
+    if (req.body.data) bodyData = JSON.parse(req.body.data);
+
+    const payload = { images, ...bodyData };;
 
     const listing = await listingService.updateListing(decoded, req.params.id, payload);
 
