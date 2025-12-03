@@ -4,7 +4,7 @@ import { validateRequest } from "../../middlewares/validateRequest";
 import { createListingZodSchema, updateListingZodSchema } from "./listing.validation";
 import { checkAuth } from "../../middlewares/checkAuth";
 import { Role } from "@prisma/client";
-import { multerUpload } from "../../../config/cloudinary.config";
+import { multerUpload } from "../../../config/multer.config";
 
 const router = Router();
 

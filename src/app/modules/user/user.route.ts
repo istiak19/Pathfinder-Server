@@ -3,8 +3,8 @@ import { userController } from "./user.controller";
 import { checkAuth } from "../../middlewares/checkAuth";
 import { Role } from "@prisma/client";
 import { validateRequest } from "../../middlewares/validateRequest";
-import { createUserZodSchema, updateUserZodSchema } from "./user.validation";
-import { multerUpload } from "../../../config/cloudinary.config";
+import { createUserZodSchema, } from "./user.validation";
+import { multerUpload } from "../../../config/multer.config";
 
 const router = Router();
 
