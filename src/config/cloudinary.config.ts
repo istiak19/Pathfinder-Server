@@ -1,29 +1,26 @@
-import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
-import stream from "stream";
+import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
+import streamifier from "streamifier";
 
-// Cloudinary config
+// Cloudinary configuration
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Multer memory storage
-export const multerUpload = multer({ storage: multer.memoryStorage() });
-
-// Upload buffer to Cloudinary
-export const uploadToCloudinary = (fileBuffer: Buffer, fileName: string) => {
-    return new Promise<any>((resolve, reject) => {
-        const bufferStream = new stream.PassThrough();
-        bufferStream.end(fileBuffer);
-
-        cloudinary.uploader.upload_stream(
+/**
+ * Buffer কে Cloudinary তে আপলোড করে এবং UploadApiResponse রিটার্ন করে
+ */
+export const uploadToCloudinary = (fileBuffer: Buffer, fileName: string): Promise<UploadApiResponse> => {
+    return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
             { public_id: fileName, folder: "uploads" },
             (error, result) => {
-                if (error) return reject(error);
+                if (error || !result) return reject(error);
                 resolve(result);
             }
-        ).end(fileBuffer);
+        );
+
+        streamifier.createReadStream(fileBuffer).pipe(uploadStream);
     });
 };

@@ -6,7 +6,7 @@ import { catchAsync } from "../../shared/catchAsync";
 import { JwtPayload } from "jsonwebtoken";
 import pick from "../../helpers/pick";
 import { listingFilterableFields } from "./listing.constant";
-import { uploadMultipleFiles } from "../../../config/multer.config";
+import { uploadMultipleFiles } from "../../../config/fileUpload.service";
 
 const createListing = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
