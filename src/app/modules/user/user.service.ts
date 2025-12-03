@@ -68,7 +68,7 @@ const getSingleUser = async (token: JwtPayload, id: string) => {
 
     if (!isExistUser) {
         throw new AppError(httpStatus.BAD_REQUEST, "User not found");
-    };
+    }
 
     const user = await prisma.user.findUnique({
         where: { id }
@@ -78,7 +78,38 @@ const getSingleUser = async (token: JwtPayload, id: string) => {
         throw new AppError(httpStatus.NOT_FOUND, "User not found");
     }
 
-    return user;
+    // Role-based field filtering
+    let filteredUser: any = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profilePic: user.profilePic,
+        bio: user.bio,
+        languages: user.languages,
+        isVerified: user.isVerified,
+        status: user.status,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+    };
+
+    // Guide-specific fields only for GUIDE
+    if (user.role === "GUIDE") {
+        filteredUser.expertise = user.expertise;
+        filteredUser.dailyRate = user.dailyRate;
+    }
+
+    // Tourist-specific fields only for TOURIST
+    if (user.role === "TOURIST") {
+        filteredUser.travelPreferences = user.travelPreferences;
+    }
+
+    // Admin → guide/tourist specific fields exclude
+    // if (user.role === "ADMIN") {
+    //    
+    // }
+
+    return filteredUser;
 };
 
 const createUser = async (payload: CreateUserPayload) => {
@@ -105,25 +136,66 @@ const createUser = async (payload: CreateUserPayload) => {
     return user;
 };
 
-const updateUser = async (token: JwtPayload, id: string, payload: Partial<CreateUserPayload>) => {
-    const isExistUser = await prisma.user.findUnique({
-        where: {
-            email: token.email
-        }
+const updateUserProfile = async (token: JwtPayload, payload: Partial<CreateUserPayload>) => {
+    const existingUser = await prisma.user.findUnique({
+        where: { email: token.email }
     });
 
-    if (!isExistUser) {
+    if (!existingUser) {
         throw new AppError(httpStatus.BAD_REQUEST, "User not found");
-    };
+    }
 
+    // Prevent updating restricted fields
+    const forbiddenFields = [
+        "role",
+        "status",
+        "authProvider",
+        "providerId",
+        "id",
+        "email",
+        "createdAt",
+        "updatedAt",
+    ];
+
+    for (const field of forbiddenFields) {
+        if (payload[field as keyof typeof payload] !== undefined) {
+            delete payload[field as keyof typeof payload];
+        }
+    }
+
+    // Password hashing
     if (payload.password) {
         payload.password = await bcrypt.hash(payload.password, 10);
     }
 
-    return await prisma.user.update({
-        where: { id },
-        data: payload,
+    // Role-based restrictions
+    if (existingUser.role === "GUIDE") {
+        // allowed → expertise, dailyRate
+    } else {
+        delete payload.expertise;
+        delete payload.dailyRate;
+    }
+
+    if (existingUser.role === "TOURIST") {
+        // allowed → travelPreferences
+    } else {
+        delete payload.travelPreferences;
+    }
+
+    // ADMIN → no guide/tourist fields
+    if (existingUser.role === "ADMIN") {
+        delete payload.expertise;
+        delete payload.dailyRate;
+        delete payload.travelPreferences;
+    }
+
+    // Update user
+    const updatedUser = await prisma.user.update({
+        where: { email: token.email },
+        data: payload
     });
+
+    return updatedUser;
 };
 
 const deleteUser = async (token: JwtPayload, id: string) => {
@@ -146,6 +218,6 @@ export const userService = {
     createUser,
     getAllUsers,
     getSingleUser,
-    updateUser,
+    updateUserProfile,
     deleteUser
 };

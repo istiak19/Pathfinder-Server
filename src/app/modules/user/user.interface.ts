@@ -6,6 +6,7 @@ export interface CreateUserPayload {
     profilePic?: string;
     bio?: string;
     languages?: string[];
+    travelPreferences?: string[];
     expertise?: string[];
     dailyRate?: number;
 };

@@ -45,7 +45,7 @@ const getSingleUser = catchAsync(async (req, res) => {
     });
 });
 
-const updateUser = catchAsync(async (req, res) => {
+const updateUserProfile = catchAsync(async (req, res) => {
     const decoded = req.user as JwtPayload;
     let profilePic: string | undefined;
 
@@ -73,7 +73,7 @@ const updateUser = catchAsync(async (req, res) => {
         ...bodyData,
     };
 
-    const user = await userService.updateUser(decoded, req.params.id, payload);
+    const user = await userService.updateUserProfile(decoded, payload);
 
     sendResponse(res, {
         success: true,
@@ -99,6 +99,6 @@ export const userController = {
     createUser,
     getAllUsers,
     getSingleUser,
-    updateUser,
+    updateUserProfile,
     deleteUser
 };

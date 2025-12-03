@@ -11,12 +11,7 @@ const router = Router();
 router.post("/register", validateRequest(createUserZodSchema), userController.createUser);
 router.get("/", checkAuth(Role.ADMIN), userController.getAllUsers);
 router.get("/:id", checkAuth(Role.ADMIN, Role.GUIDE, Role.TOURIST), userController.getSingleUser);
-router.patch(
-    "/:id",
-    checkAuth(Role.ADMIN, Role.GUIDE, Role.TOURIST),
-    multerUpload.single("file"),
-    userController.updateUser
-);
+router.patch("/profile", checkAuth(Role.ADMIN, Role.GUIDE, Role.TOURIST), multerUpload.single("file"), userController.updateUserProfile);
 router.delete("/:id", checkAuth(Role.ADMIN), userController.deleteUser);
 
 export const userRoutes = router;
