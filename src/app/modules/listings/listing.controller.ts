@@ -70,6 +70,18 @@ const updateListing = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const updateListingStatus = catchAsync(async (req, res) => {
+    const decoded = req.user as JwtPayload;
+    const updated = await listingService.updateListingStatus(decoded, req.params.id, req.body.status);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Listing status updated successfully",
+        data: updated,
+    });
+});
+
 const deleteListing = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
     const listing = await listingService.deleteListing(decoded, req.params.id);
@@ -87,5 +99,6 @@ export const listingController = {
     getAllListings,
     getSingleListing,
     updateListing,
+    updateListingStatus,
     deleteListing
 };

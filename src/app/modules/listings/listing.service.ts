@@ -5,7 +5,7 @@ import httpStatus from "http-status";
 import { JwtPayload } from "jsonwebtoken";
 import calculatePagination, { IOptions } from "../../helpers/paginationHelper";
 import { FilterParams } from "../../../constants";
-import { Prisma } from "@prisma/client";
+import { ListingStatus, Prisma } from "@prisma/client";
 import { listingSearchableFields } from "./listing.constant";
 
 const createListing = async (token: JwtPayload, payload: ICreateListingPayload) => {
@@ -140,6 +140,42 @@ const updateListing = async (token: JwtPayload, id: string, payload: Partial<ICr
     });
 };
 
+const updateListingStatus = async (token: JwtPayload, listingId: string, status: ListingStatus) => {
+    const user = await prisma.user.findUnique({
+        where: {
+            email: token.email,
+        }
+    });
+
+    if (!user) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+    }
+
+    // 2. Permission check (only admin or guide)
+    if (user.role !== "ADMIN" && user.role !== "GUIDE") {
+        throw new AppError(httpStatus.FORBIDDEN, "You do not have permission to update listing status");
+    }
+
+    // 3. Listing exists?
+    const listing = await prisma.listing.findUnique({
+        where: { id: listingId }
+    });
+
+    if (!listing) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Listing not found");
+    }
+
+    // 4. Update only status
+    const result = await prisma.listing.update({
+        where: { id: listingId },
+        data: {
+            status,
+        }
+    });
+
+    return result;
+};
+
 const deleteListing = async (token: JwtPayload, id: string) => {
     const isExistUser = await prisma.user.findUnique({
         where: {
@@ -169,5 +205,6 @@ export const listingService = {
     getAllListings,
     getSingleListing,
     updateListing,
+    updateListingStatus,
     deleteListing
 };
