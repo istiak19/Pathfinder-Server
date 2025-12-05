@@ -189,10 +189,17 @@ const updateUserProfile = async (token: JwtPayload, payload: Partial<CreateUserP
         delete payload.travelPreferences;
     }
 
+    // Convert dailyRate to integer if present
+    if (payload.dailyRate !== undefined) {
+        payload.dailyRate = payload.dailyRate
+            ? parseInt(payload.dailyRate as unknown as string, 10) 
+            : undefined;
+    }
+
     // Update user
     const updatedUser = await prisma.user.update({
         where: { email: token.email },
-        data: payload
+        data: payload,
     });
 
     return updatedUser;
