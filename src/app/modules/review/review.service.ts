@@ -23,7 +23,7 @@ const createReview = async (token: JwtPayload, payload: IReview) => {
     });
 
     if (isExistBooking?.touristId !== isExistTourist.id) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Appointment not found");
+        throw new AppError(httpStatus.BAD_REQUEST, "Booking not found");
     };
 
     if (isExistBooking.status !== "COMPLETED") {
