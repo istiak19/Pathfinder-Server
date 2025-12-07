@@ -28,11 +28,21 @@ const createListing = async (token: JwtPayload, payload: ICreateListingPayload) 
 
 const getAllListings = async (params: FilterParams, options: IOptions) => {
     const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
-    const { searchTerm, priceMin, priceMax, language, ...filterData } = params;
+
+    const {
+        searchTerm,
+        language,
+        priceRange,
+        priceMin,
+        priceMax,
+        ...filterData
+    } = params;
 
     const andConditions: Prisma.ListingWhereInput[] = [];
 
-    // Text Search (title, description, itinerary)
+    // -------------------------
+    // 1. Text Search
+    // -------------------------
     if (searchTerm) {
         andConditions.push({
             OR: listingSearchableFields.map(field => ({
@@ -42,9 +52,11 @@ const getAllListings = async (params: FilterParams, options: IOptions) => {
                 },
             })),
         });
-    };
+    }
 
-    // Normal Listing Filters (city, category, status, maxGroupSize)
+    // -------------------------
+    // 2. Normal Filters (city, category, status, maxGroupSize)
+    // -------------------------
     if (Object.keys(filterData).length > 0) {
         andConditions.push({
             AND: Object.keys(filterData).map(key => ({
@@ -53,9 +65,11 @@ const getAllListings = async (params: FilterParams, options: IOptions) => {
                 },
             })),
         });
-    };
+    }
 
-    // Filter by Guide Language (guide.languages array)
+    // -------------------------
+    // 3. Guide Language Filter
+    // -------------------------
     if (language) {
         andConditions.push({
             guide: {
@@ -64,22 +78,45 @@ const getAllListings = async (params: FilterParams, options: IOptions) => {
                 },
             },
         });
-    };
+    }
 
-    //  Price Range Filter
-    if (priceMin || priceMax) {
+    // -------------------------
+    // 4. Price Range Support
+    // -------------------------
+    let min = priceMin ? Number(priceMin) : undefined;
+    let max = priceMax ? Number(priceMax) : undefined;
+
+    // Support priceRange formats: 100-500, 100-, -500, 100
+    if (priceRange) {
+        const [rawMin, rawMax] = priceRange.split("-");
+
+        if (rawMin !== undefined && rawMin !== "") {
+            min = Number(rawMin);
+        }
+
+        if (rawMax !== undefined && rawMax !== "") {
+            max = Number(rawMax);
+        }
+    }
+
+    if (min !== undefined || max !== undefined) {
         andConditions.push({
             price: {
-                gte: priceMin ? Number(priceMin) : undefined,
-                lte: priceMax ? Number(priceMax) : undefined,
+                gte: min,
+                lte: max,
             },
         });
-    };
+    }
 
-    // Final Prisma Where
-    const whereConditions: Prisma.ListingWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+    // -------------------------
+    // Final Where
+    // -------------------------
+    const whereConditions: Prisma.ListingWhereInput =
+        andConditions.length > 0 ? { AND: andConditions } : {};
 
+    // -------------------------
     // Query Database
+    // -------------------------
     const result = await prisma.listing.findMany({
         skip,
         take: limit,
@@ -97,7 +134,7 @@ const getAllListings = async (params: FilterParams, options: IOptions) => {
 
     return {
         meta: { page, limit, total, totalPages },
-        data: result
+        data: result,
     };
 };
 
