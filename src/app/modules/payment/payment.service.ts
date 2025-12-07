@@ -78,8 +78,8 @@ const createPayment = async (token: JwtPayload, payload: { bookingId: string }) 
         line_items: [
             {
                 price_data: {
-                    currency: "usd", // bdt may cause stripe errors
-                    product_data: { name: `Tour booking for ${isExistUser.name}` },
+                    currency: "bdt",
+                    product_data: { name: `Listing booking for ${isExistUser.name}` },
                     unit_amount: amount * 100,
                 },
                 quantity: 1,
