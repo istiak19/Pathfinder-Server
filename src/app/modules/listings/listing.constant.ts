@@ -12,5 +12,6 @@ export const listingFilterableFields = [
     "language",
     "priceMin",
     "priceMax",
+    "priceRange",
     "searchTerm",
 ];

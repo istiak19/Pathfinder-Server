@@ -49,14 +49,20 @@ const getAllUsers = async (token: JwtPayload, params: FilterParams, options: IOp
         AND: andConditions
     } : {};
 
-    const users = await prisma.user.findMany({
+    const result = await prisma.user.findMany({
         skip,
         take: limit,
         where: whereConditions,
         orderBy: { [sortBy]: sortOrder }
     });
 
-    return users;
+    const total = await prisma.user.count({ where: whereConditions });
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+        meta: { page, limit, total, totalPages },
+        data: result
+    };
 };
 
 const getSingleUser = async (token: JwtPayload, id: string) => {
@@ -192,7 +198,7 @@ const updateUserProfile = async (token: JwtPayload, payload: Partial<CreateUserP
     // Convert dailyRate to integer if present
     if (payload.dailyRate !== undefined) {
         payload.dailyRate = payload.dailyRate
-            ? parseInt(payload.dailyRate as unknown as string, 10) 
+            ? parseInt(payload.dailyRate as unknown as string, 10)
             : undefined;
     }
 

@@ -29,7 +29,8 @@ const getMyBookings = catchAsync(async (req: Request, res: Response) => {
         success: true,
         statusCode: httpStatus.OK,
         message: "My bookings",
-        data: result,
+        meta: result.meta,
+        data: result.data,
     });
 });
 
@@ -55,7 +56,8 @@ const getGuideBookings = catchAsync(async (req: Request, res: Response) => {
         success: true,
         statusCode: httpStatus.OK,
         message: "Guide bookings",
-        data: result,
+        meta: result.meta,
+        data: result.data,
     });
 });
 
@@ -69,7 +71,8 @@ const getAllBookings = catchAsync(async (req: Request, res: Response) => {
         success: true,
         statusCode: httpStatus.OK,
         message: "All bookings",
-        data: result,
+        meta: result.meta,
+        data: result.data,
     });
 });
 
