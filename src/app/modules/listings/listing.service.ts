@@ -92,7 +92,13 @@ const getAllListings = async (params: FilterParams, options: IOptions) => {
         },
     });
 
-    return result;
+    const total = await prisma.listing.count({ where: whereConditions });
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+        meta: { page, limit, total, totalPages },
+        data: result
+    };
 };
 
 const getSingleListing = async (token: JwtPayload, id: string) => {

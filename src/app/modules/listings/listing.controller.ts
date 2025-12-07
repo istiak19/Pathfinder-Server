@@ -29,13 +29,14 @@ const createListing = catchAsync(async (req: Request, res: Response) => {
 const getAllListings = catchAsync(async (req: Request, res: Response) => {
     const filters = pick(req.query, listingFilterableFields) // searching , filtering
     const options = pick(req.query, ["page", "limit", "sortBy", "sortOrder"]) // pagination and sorting
-    const listings = await listingService.getAllListings(filters, options);
+    const result = await listingService.getAllListings(filters, options);
 
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.OK,
         message: "Listings fetched successfully",
-        data: listings
+        meta: result.meta,
+        data: result.data
     });
 });
 

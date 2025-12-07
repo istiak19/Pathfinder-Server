@@ -23,13 +23,14 @@ const getAllUsers = catchAsync(async (req, res) => {
     const decodedToken = req.user as JwtPayload;
     const filters = pick(req.query, userFilterableFields) // searching , filtering
     const options = pick(req.query, ["page", "limit", "sortBy", "sortOrder"]) // pagination and sorting
-    const users = await userService.getAllUsers(decodedToken, filters, options);
+    const result = await userService.getAllUsers(decodedToken, filters, options);
 
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.OK,
         message: "Users fetched successfully",
-        data: users
+        meta: result.meta,
+        data: result.data,
     });
 });
 

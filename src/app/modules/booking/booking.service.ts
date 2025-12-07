@@ -168,7 +168,13 @@ const getMyBookings = async (token: JwtPayload, params: FilterParams, options: I
         },
     });
 
-    return result;
+    const total = await prisma.booking.count({ where: whereConditions });
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+        meta: { page, limit, total, totalPages },
+        data: result
+    };
 };
 
 const getSingleMyBookings = async (token: JwtPayload, id: string) => {
@@ -268,7 +274,13 @@ export const getGuideBookings = async (token: JwtPayload, params: FilterParams, 
         },
     });
 
-    return result;
+    const total = await prisma.booking.count({ where: whereConditions });
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+        meta: { page, limit, total, totalPages },
+        data: result
+    };
 };
 
 const getAllBookings = async (token: JwtPayload, params: FilterParams, options: IOptions) => {
@@ -337,7 +349,13 @@ const getAllBookings = async (token: JwtPayload, params: FilterParams, options: 
         },
     });
 
-    return result;
+    const total = await prisma.booking.count({ where: whereConditions });
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+        meta: { page, limit, total, totalPages },
+        data: result
+    };
 };
 
 const cancelBooking = async (token: JwtPayload, id: string) => {
