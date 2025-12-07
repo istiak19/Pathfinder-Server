@@ -204,21 +204,27 @@ const getSingleMyBookings = async (token: JwtPayload, id: string) => {
 
 export const getGuideBookings = async (token: JwtPayload, params: FilterParams, options: IOptions) => {
     const isExistUser = await prisma.user.findUnique({
-        where: {
-            email: token.email
-        }
+        where: { email: token.email }
     });
 
     if (!isExistUser) {
         throw new AppError(httpStatus.BAD_REQUEST, "User not found");
-    };
+    }
 
     const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
-    const { searchTerm, guestsMin, guestsMax, dateFrom, dateTo, ...filterData } = params;
+
+    const {
+        searchTerm,
+        guestsMin,
+        guestsMax,
+        dateFrom,
+        dateTo,
+        ...filterData
+    } = params;
 
     const andConditions: Prisma.BookingWhereInput[] = [];
 
-    // Text search
+    // 🔍 Text search
     if (searchTerm) {
         andConditions.push({
             OR: bookingSearchableFields.map(field => ({
@@ -227,14 +233,26 @@ export const getGuideBookings = async (token: JwtPayload, params: FilterParams, 
         });
     }
 
-    // Exact filters
+    // ✅ Handle normal filters + multi filters (status, paymentStatus)
     Object.keys(filterData).forEach(key => {
-        if (filterData[key] !== undefined) {
-            andConditions.push({ [key]: { equals: filterData[key] } });
+        const value = filterData[key];
+
+        if (value === undefined || value === null) return;
+
+        if (Array.isArray(value)) {
+            // Example: ?status=PENDING&status=ACCEPTED
+            andConditions.push({
+                [key]: { in: value }
+            });
+        } else {
+            // Single value
+            andConditions.push({
+                [key]: { equals: value }
+            });
         }
     });
 
-    // Guests range filter
+    // 👥 Guests range filter
     if (guestsMin || guestsMax) {
         andConditions.push({
             guests: {
@@ -244,7 +262,7 @@ export const getGuideBookings = async (token: JwtPayload, params: FilterParams, 
         });
     }
 
-    // Date range filter
+    // 📅 Date range filter
     if (dateFrom || dateTo) {
         andConditions.push({
             date: {
@@ -254,12 +272,13 @@ export const getGuideBookings = async (token: JwtPayload, params: FilterParams, 
         });
     }
 
-    // Only bookings for the guide's listings
+    // 🔐 Only guide's own bookings
     andConditions.push({
         listing: { guideId: token.userId },
     });
 
-    const whereConditions: Prisma.BookingWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+    const whereConditions: Prisma.BookingWhereInput =
+        andConditions.length > 0 ? { AND: andConditions } : {};
 
     const result = await prisma.booking.findMany({
         skip,

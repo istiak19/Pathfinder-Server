@@ -40,9 +40,6 @@ const getAllListings = async (params: FilterParams, options: IOptions) => {
 
     const andConditions: Prisma.ListingWhereInput[] = [];
 
-    // -------------------------
-    // 1. Text Search
-    // -------------------------
     if (searchTerm) {
         andConditions.push({
             OR: listingSearchableFields.map(field => ({
@@ -54,9 +51,6 @@ const getAllListings = async (params: FilterParams, options: IOptions) => {
         });
     }
 
-    // -------------------------
-    // 2. Normal Filters (city, category, status, maxGroupSize)
-    // -------------------------
     if (Object.keys(filterData).length > 0) {
         andConditions.push({
             AND: Object.keys(filterData).map(key => ({
@@ -67,36 +61,25 @@ const getAllListings = async (params: FilterParams, options: IOptions) => {
         });
     }
 
-    // -------------------------
-    // 3. Guide Language Filter
-    // -------------------------
     if (language) {
+        const lang = language.toLowerCase();
         andConditions.push({
             guide: {
                 languages: {
-                    has: language,
+                    has: lang,
                 },
             },
         });
     }
 
-    // -------------------------
-    // 4. Price Range Support
-    // -------------------------
     let min = priceMin ? Number(priceMin) : undefined;
     let max = priceMax ? Number(priceMax) : undefined;
 
-    // Support priceRange formats: 100-500, 100-, -500, 100
     if (priceRange) {
         const [rawMin, rawMax] = priceRange.split("-");
 
-        if (rawMin !== undefined && rawMin !== "") {
-            min = Number(rawMin);
-        }
-
-        if (rawMax !== undefined && rawMax !== "") {
-            max = Number(rawMax);
-        }
+        if (rawMin !== undefined && rawMin !== "") min = Number(rawMin);
+        if (rawMax !== undefined && rawMax !== "") max = Number(rawMax);
     }
 
     if (min !== undefined || max !== undefined) {
@@ -108,15 +91,8 @@ const getAllListings = async (params: FilterParams, options: IOptions) => {
         });
     }
 
-    // -------------------------
-    // Final Where
-    // -------------------------
-    const whereConditions: Prisma.ListingWhereInput =
-        andConditions.length > 0 ? { AND: andConditions } : {};
+    const whereConditions: Prisma.ListingWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
-    // -------------------------
-    // Query Database
-    // -------------------------
     const result = await prisma.listing.findMany({
         skip,
         take: limit,
