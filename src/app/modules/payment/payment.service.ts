@@ -1,10 +1,8 @@
 import httpStatus from 'http-status';
-import Stripe from "stripe";
 import { prisma } from "../../shared/prisma";
 import { BookingStatus, PaymentStatus } from "@prisma/client";
 import { JwtPayload } from "jsonwebtoken";
 import { AppError } from "../../errors/AppError";
-import { stripe } from '../../helpers/stripe';
 import { transactionGet } from '../../utils/transactionGet';
 
 const createPayment = async (token: JwtPayload, payload: { bookingId: string }) => {
@@ -98,43 +96,43 @@ const createPayment = async (token: JwtPayload, payload: { bookingId: string }) 
     };
 };
 
-const handleStripeWebhookEvent = async (event: Stripe.Event) => {
-    if (event.type === "checkout.session.completed") {
-        const session = event.data.object as Stripe.Checkout.Session;
+// const handleStripeWebhookEvent = async (event: Stripe.Event) => {
+//     if (event.type === "checkout.session.completed") {
+//         const session = event.data.object as Stripe.Checkout.Session;
 
-        const bookingId = session.metadata?.bookingId;
-        const paymentId = session.metadata?.paymentId;
+//         const bookingId = session.metadata?.bookingId;
+//         const paymentId = session.metadata?.paymentId;
 
-        if (!bookingId || !paymentId) {
-            console.error("❌ Missing metadata in Stripe session");
-            return;
-        }
+//         if (!bookingId || !paymentId) {
+//             console.error("❌ Missing metadata in Stripe session");
+//             return;
+//         }
 
-        const isPaid = session.payment_status === "paid";
+//         const isPaid = session.payment_status === "paid";
 
-        // Update booking
-        await prisma.booking.update({
-            where: { id: bookingId },
-            data: {
-                paymentStatus: isPaid ? PaymentStatus.PAID : PaymentStatus.UNPAID,
-                status: BookingStatus.CONFIRMED,
-            },
-        });
+//         // Update booking
+//         await prisma.booking.update({
+//             where: { id: bookingId },
+//             data: {
+//                 paymentStatus: isPaid ? PaymentStatus.PAID : PaymentStatus.UNPAID,
+//                 status: BookingStatus.CONFIRMED,
+//             },
+//         });
 
-        // Update payment entry
-        await prisma.payment.update({
-            where: { id: paymentId },
-            data: {
-                status: isPaid ? PaymentStatus.PAID : PaymentStatus.UNPAID,
-                paymentGatewayData: session as any,
-            },
-        });
+//         // Update payment entry
+//         await prisma.payment.update({
+//             where: { id: paymentId },
+//             data: {
+//                 status: isPaid ? PaymentStatus.PAID : PaymentStatus.UNPAID,
+//                 paymentGatewayData: session as any,
+//             },
+//         });
 
-        console.log("✅ Payment + Booking updated successfully");
-    } else {
-        console.log(`ℹ️ Unhandled event type: ${event.type}`);
-    }
-};
+//         console.log("✅ Payment + Booking updated successfully");
+//     } else {
+//         console.log(`ℹ️ Unhandled event type: ${event.type}`);
+//     }
+// };
 
 // const processGuidePayout = async (bookingId: string) => {
 //     // 1️⃣ Booking get
@@ -188,7 +186,76 @@ const handleStripeWebhookEvent = async (event: Stripe.Event) => {
 //     };
 // };
 
+
+import { Request, Response } from "express";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+    apiVersion: "2025-11-17.clover",
+});
+
+const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
+
+export const handleStripeWebhookEvent = async (req: Request, res: Response) => {
+    let event: Stripe.Event;
+
+    // Fix: header type
+    const signature = req.headers["stripe-signature"] as string;
+
+    try {
+        // Fix: req.body MUST be Buffer
+        event = stripe.webhooks.constructEvent(
+            req.body as Buffer,
+            signature,
+            WEBHOOK_SECRET
+        );
+    } catch (err: any) {
+        console.error("❌ Webhook verification failed:", err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    console.log("📩 Received Stripe event:", event.type);
+
+    if (event.type === "checkout.session.completed") {
+        const session = event.data.object as Stripe.Checkout.Session;
+
+        const bookingId = session.metadata?.bookingId;
+        const paymentId = session.metadata?.paymentId;
+
+        if (!bookingId || !paymentId) {
+            console.error("❌ Missing metadata");
+            return res.status(400).send("Missing metadata");
+        }
+
+        const isPaid = session.payment_status === "paid";
+
+        try {
+            await prisma.booking.update({
+                where: { id: bookingId },
+                data: {
+                    paymentStatus: isPaid ? PaymentStatus.PAID : PaymentStatus.UNPAID,
+                    status: BookingStatus.CONFIRMED,
+                },
+            });
+
+            await prisma.payment.update({
+                where: { id: paymentId },
+                data: {
+                    status: isPaid ? PaymentStatus.PAID : PaymentStatus.UNPAID,
+                    paymentGatewayData: session as any,
+                },
+            });
+
+            console.log("✅ Payment + Booking updated");
+        } catch (err) {
+            console.error("❌ DB update error:", err);
+            return res.status(500).send("Database update failed");
+        }
+    }
+
+    return res.json({ received: true });
+};
 export const paymentService = {
-    handleStripeWebhookEvent,
+    // handleStripeWebhookEvent,
     createPayment
 };
