@@ -3,7 +3,7 @@ model Payment {
     amount             Float
     paymentGatewayData Json?
     status             PaymentStatus @default(UNPAID)
-    transactionId      String?
+    transactionId      String?       @unique
 
     // Relation
     bookingId String  @unique

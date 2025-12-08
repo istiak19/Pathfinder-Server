@@ -5,6 +5,8 @@ import { stripe } from "../../helpers/stripe";
 import { catchAsync } from '../../shared/catchAsync';
 import { JwtPayload } from 'jsonwebtoken';
 import { paymentService } from './payment.service';
+import { envVars } from '../../../config/env';
+import { AppError } from '../../errors/AppError';
 
 const createPayment = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
@@ -16,6 +18,66 @@ const createPayment = catchAsync(async (req: Request, res: Response) => {
         message: "Payment request submitted",
         data: payment,
     });
+});
+
+const successPayment = catchAsync(async (req: Request, res: Response) => {
+    // 1️⃣ Explicitly extract query param
+    const transactionId = req.query.transactionId as string;
+    const amount = req.query.amount as string | undefined;
+    const status = req.query.status as string | undefined;
+
+    if (!transactionId) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Transaction ID is required");
+    }
+
+    // 2️⃣ Call service
+    const result = await paymentService.successPayment({ transactionId });
+
+    // 3️⃣ Redirect frontend
+    if (result.success) {
+        const redirectUrl = `${envVars.SSL.SSL_SUCCESS_FRONTEND_URL}?transactionId=${transactionId}&message=${encodeURIComponent(result.message)}&amount=${amount ?? ""}&status=${status ?? ""}`;
+        return res.redirect(redirectUrl);
+    }
+});
+
+const failPayment = catchAsync(async (req: Request, res: Response) => {
+    // 1️⃣ Explicitly extract query param
+    const transactionId = req.query.transactionId as string;
+    const amount = req.query.amount as string | undefined;
+    const status = req.query.status as string | undefined;
+
+    if (!transactionId) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Transaction ID is required");
+    }
+
+    // 2️⃣ Call service
+    const result = await paymentService.failPayment({ transactionId });
+
+    // 3️⃣ Redirect frontend
+
+    if (!result.success) {
+        res.redirect(`${envVars.SSL.SSL_FAIL_FRONTEND_URL}?transactionId=${transactionId}&message=${result.message}&amount=${amount ?? ""}&status=${status ?? ""}`)
+    }
+});
+
+const cancelPayment = catchAsync(async (req: Request, res: Response) => {
+    // 1️⃣ Explicitly extract query param
+    const transactionId = req.query.transactionId as string;
+    const amount = req.query.amount as string | undefined;
+    const status = req.query.status as string | undefined;
+
+    if (!transactionId) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Transaction ID is required");
+    }
+
+    // 2️⃣ Call service
+    const result = await paymentService.cancelPayment({ transactionId });
+
+    // 3️⃣ Redirect frontend
+
+    if (!result.success) {
+        res.redirect(`${envVars.SSL.SSL_CANCEL_FRONTEND_URL}?transactionId=${transactionId}&message=${result.message}&amount=${amount ?? ""}&status=${status ?? ""}`)
+    }
 });
 
 // const handleStripeWebhookEvent = catchAsync(async (req: Request, res: Response) => {
@@ -43,5 +105,8 @@ const createPayment = catchAsync(async (req: Request, res: Response) => {
 
 export const paymentController = {
     createPayment,
-    // handleStripeWebhookEvent
+    // handleStripeWebhookEvent,
+    successPayment,
+    failPayment,
+    cancelPayment
 };
