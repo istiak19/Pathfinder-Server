@@ -7,6 +7,7 @@ import { JwtPayload } from 'jsonwebtoken';
 import { paymentService } from './payment.service';
 import { envVars } from '../../../config/env';
 import { AppError } from '../../errors/AppError';
+import { SSLService } from '../sslCommerz/sslCommerz.service';
 
 const createPayment = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
@@ -103,10 +104,30 @@ const cancelPayment = catchAsync(async (req: Request, res: Response) => {
 //     });
 // });
 
+const validatePayment = catchAsync(
+    async (req: Request, res: Response) => {
+        console.log("SSLCommerz IPN Hit:", req.body);
+
+        if (!req.body || !req.body.tran_id || !req.body.val_id) {
+            throw new AppError(400, "Invalid IPN payload");
+        }
+
+        await SSLService.validatePayment(req.body);
+
+        sendResponse(res, {
+            statusCode: 200,
+            success: true,
+            message: "Payment Validated Successfully",
+            data: null,
+        });
+    }
+);
+
 export const paymentController = {
     createPayment,
     // handleStripeWebhookEvent,
     successPayment,
     failPayment,
-    cancelPayment
+    cancelPayment,
+    validatePayment
 };
