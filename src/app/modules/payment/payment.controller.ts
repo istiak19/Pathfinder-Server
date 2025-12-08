@@ -60,32 +60,53 @@ const failPayment = catchAsync(async (req: Request, res: Response) => {
     }
 });
 
-const handleStripeWebhookEvent = catchAsync(async (req: Request, res: Response) => {
+const cancelPayment = catchAsync(async (req: Request, res: Response) => {
+    // 1️⃣ Explicitly extract query param
+    const transactionId = req.query.transactionId as string;
+    const amount = req.query.amount as string | undefined;
+    const status = req.query.status as string | undefined;
 
-    const sig = req.headers["stripe-signature"] as string;
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
-    let event;
-    try {
-        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } catch (err: any) {
-        console.error("⚠️ Webhook signature verification failed:", err.message);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
+    if (!transactionId) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Transaction ID is required");
     }
-    const result = await paymentService.handleStripeWebhookEvent(event);
-    console.log(result)
 
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'Webhook req send successfully',
-        data: result,
-    });
+    // 2️⃣ Call service
+    const result = await paymentService.cancelPayment({ transactionId });
+
+    // 3️⃣ Redirect frontend
+
+    if (!result.success) {
+        res.redirect(`${envVars.SSL.SSL_CANCEL_FRONTEND_URL}?transactionId=${transactionId}&message=${result.message}&amount=${amount ?? ""}&status=${status ?? ""}`)
+    }
 });
+
+// const handleStripeWebhookEvent = catchAsync(async (req: Request, res: Response) => {
+
+//     const sig = req.headers["stripe-signature"] as string;
+//     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+//     let event;
+//     try {
+//         event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+//     } catch (err: any) {
+//         console.error("⚠️ Webhook signature verification failed:", err.message);
+//         return res.status(400).send(`Webhook Error: ${err.message}`);
+//     }
+//     const result = await paymentService.handleStripeWebhookEvent(event);
+//     console.log(result)
+
+//     sendResponse(res, {
+//         statusCode: httpStatus.OK,
+//         success: true,
+//         message: 'Webhook req send successfully',
+//         data: result,
+//     });
+// });
 
 export const paymentController = {
     createPayment,
-    handleStripeWebhookEvent,
+    // handleStripeWebhookEvent,
     successPayment,
-    failPayment
+    failPayment,
+    cancelPayment
 };

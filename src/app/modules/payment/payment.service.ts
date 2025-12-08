@@ -8,44 +8,19 @@ import Stripe from 'stripe';
 import { ISSLCommerz } from '../sslCommerz/sslCommerz.interface';
 import { SSLService } from '../sslCommerz/sslCommerz.service';
 
-const createPayment = async (
-    token: JwtPayload,
-    payload: { bookingId: string }
-) => {
+const createPayment = async (token: JwtPayload, payload: { bookingId: string }) => {
     const user = await prisma.user.findUnique({
-        where: { email: token.email },
+        where: { email: token.email }
     });
 
-    if (!user) {
-        throw new AppError(httpStatus.BAD_REQUEST, "User not found");
-    }
+    if (!user) throw new AppError(httpStatus.BAD_REQUEST, "User not found");
 
-    const booking = await prisma.booking.findUnique({
-        where: { id: payload.bookingId },
-    });
+    const booking = await prisma.booking.findUnique({ where: { id: payload.bookingId } });
 
-    if (!booking) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Booking not found");
-    }
+    if (!booking) throw new AppError(httpStatus.BAD_REQUEST, "Booking not found");
 
-    if (booking.status !== BookingStatus.ACCEPTED) {
-        throw new AppError(
-            httpStatus.BAD_REQUEST,
-            "Payment is allowed only for ACCEPTED bookings"
-        );
-    }
-
-    // Prevent duplicate payment
-    const existingPayment = await prisma.payment.findFirst({
-        where: { bookingId: booking.id },
-    });
-
-    if (existingPayment) {
-        throw new AppError(
-            httpStatus.BAD_REQUEST,
-            "A payment request already exists for this booking"
-        );
-    }
+    if (booking.status !== BookingStatus.ACCEPTED)
+        throw new AppError(httpStatus.BAD_REQUEST, "Payment is allowed only for ACCEPTED bookings");
 
     // Get listing price
     const listing = await prisma.listing.findUnique({
@@ -53,79 +28,83 @@ const createPayment = async (
         select: { price: true },
     });
 
-    if (!listing?.price) {
-        throw new AppError(
-            httpStatus.NOT_FOUND,
-            "Listing not found or price unavailable"
-        );
-    }
+    if (!listing?.price) throw new AppError(httpStatus.NOT_FOUND, "Listing not found or price unavailable");
 
-    // Total amount calculation
     const amount = listing.price * booking.guests;
-    const transactionId = transactionGet();
 
-    // Create payment row
-    const paymentData = await prisma.payment.create({
-        data: {
-            bookingId: booking.id,
-            transactionId,
-            amount,
-        },
-    });
+    // Check existing payment
+    let paymentRecord = await prisma.payment.findFirst({ where: { bookingId: booking.id } });
+
+    if (paymentRecord) {
+        if (paymentRecord.status === PaymentStatus.FAILED) {
+            // Retry failed payment
+            paymentRecord = await prisma.payment.update({
+                where: { id: paymentRecord.id },
+                data: { transactionId: transactionGet(), amount },
+            });
+        } else {
+            throw new AppError(
+                httpStatus.BAD_REQUEST,
+                "A payment request already exists for this booking. You cannot pay again."
+            );
+        }
+    } else {
+        // Create new payment
+        paymentRecord = await prisma.payment.create({
+            data: { bookingId: booking.id, transactionId: transactionGet(), amount },
+        });
+    }
 
     // Prepare SSLCommerz payload
     const sslPayload: ISSLCommerz = {
         name: user.name,
         email: user.email,
-        amount: amount,
-        transactionId: transactionId,
+        amount,
+        transactionId: paymentRecord.transactionId!,
     };
 
-    // Call initialization API
     const sslResponse = await SSLService.sslPaymentInit(sslPayload);
 
-    return {
-        gateway_url: sslResponse.GatewayPageURL, // frontend redirect
-    };
+    return { gateway_url: sslResponse.GatewayPageURL };
 };
 
-const handleStripeWebhookEvent = async (event: Stripe.Event) => {
-    if (event.type === "checkout.session.completed") {
-        const session = event.data.object as Stripe.Checkout.Session;
+// const handleStripeWebhookEvent = async (event: Stripe.Event) => {
+//     if (event.type === "checkout.session.completed") {
+//         const session = event.data.object as Stripe.Checkout.Session;
 
-        const bookingId = session.metadata?.bookingId;
-        const paymentId = session.metadata?.paymentId;
+//         const bookingId = session.metadata?.bookingId;
+//         const paymentId = session.metadata?.paymentId;
 
-        if (!bookingId || !paymentId) {
-            console.error("❌ Missing metadata in Stripe session");
-            return;
-        }
+//         if (!bookingId || !paymentId) {
+//             console.error("❌ Missing metadata in Stripe session");
+//             return;
+//         }
 
-        const isPaid = session.payment_status === "paid";
+//         const isPaid = session.payment_status === "paid";
 
-        // Update booking
-        await prisma.booking.update({
-            where: { id: bookingId },
-            data: {
-                paymentStatus: isPaid ? PaymentStatus.PAID : PaymentStatus.UNPAID,
-                status: BookingStatus.CONFIRMED,
-            },
-        });
+//         // Update booking
+//         await prisma.booking.update({
+//             where: { id: bookingId },
+//             data: {
+//                 paymentStatus: isPaid ? PaymentStatus.PAID : PaymentStatus.UNPAID,
+//                 status: BookingStatus.CONFIRMED,
+//             },
+//         });
 
-        // Update payment entry
-        await prisma.payment.update({
-            where: { id: paymentId },
-            data: {
-                status: isPaid ? PaymentStatus.PAID : PaymentStatus.UNPAID,
-                paymentGatewayData: session as any,
-            },
-        });
+//         // Update payment entry
+//         await prisma.payment.update({
+//             where: { id: paymentId },
+//             data: {
+//                 status: isPaid ? PaymentStatus.PAID : PaymentStatus.UNPAID,
+//                 paymentGatewayData: session as any,
+//             },
+//         });
 
-        console.log("✅ Payment + Booking updated successfully");
-    } else {
-        console.log(`ℹ️ Unhandled event type: ${event.type}`);
-    }
-};
+//         console.log("✅ Payment + Booking updated successfully");
+//     } else {
+//         console.log(`ℹ️ Unhandled event type: ${event.type}`);
+//     }
+// };
 
 // const processGuidePayout = async (bookingId: string) => {
 //     // 1️⃣ Booking get
@@ -319,9 +298,45 @@ const failPayment = async (query: { transactionId: string }) => {
     });
 };
 
+const cancelPayment = async (query: { transactionId: string }) => {
+    return await prisma.$transaction(async (tx) => {
+        // 1️⃣ Find Payment by transactionId
+        const payment = await tx.payment.findUnique({
+            where: { transactionId: query.transactionId },
+            include: { booking: true },
+        });
+
+        if (!payment) {
+            throw new AppError(httpStatus.BAD_REQUEST, "Payment not found");
+        }
+
+        // 2️⃣ Update Payment Status
+        const updatedPayment = await tx.payment.update({
+            where: { id: payment.id },
+            data: { status: PaymentStatus.CANCELLED },
+        });
+
+        // 3️⃣ Update Booking Status
+        await tx.booking.update({
+            where: { id: payment.bookingId },
+            data: {
+                paymentStatus: PaymentStatus.CANCELLED,
+                status: BookingStatus.CANCELLED
+            },
+        });
+
+        return {
+            success: false,
+            message: "Payment Failed",
+            payment: updatedPayment,
+        };
+    });
+};
+
 export const paymentService = {
-    handleStripeWebhookEvent,
+    // handleStripeWebhookEvent,
     createPayment,
     successPayment,
-    failPayment
+    failPayment,
+    cancelPayment
 };
