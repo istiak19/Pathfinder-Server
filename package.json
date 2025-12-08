@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.16.3",
+    "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^1.41.3",
     "cookie-parser": "^1.4.7",
@@ -36,6 +37,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@types/axios": "^0.14.4",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
