@@ -162,7 +162,15 @@ const getMyBookings = async (token: JwtPayload, params: FilterParams, options: I
         where: whereConditions,
         orderBy: { [sortBy || "createdAt"]: sortOrder || "asc" },
         include: {
-            listing: true,
+            listing: {
+                include: {
+                    guide: {
+                        select: {
+                            name: true
+                        }
+                    }
+                }
+            },
             payment: true,
             reviews: true
         },
