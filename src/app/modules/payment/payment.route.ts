@@ -9,5 +9,6 @@ router.post("/booking", checkAuth(Role.TOURIST), paymentController.createPayment
 router.post("/success", paymentController.successPayment);
 router.post("/fail", paymentController.failPayment);
 router.post("/cancel", paymentController.cancelPayment);
+router.post("/validate-payment", paymentController.validatePayment)
 
 export const paymentRoutes = router;

@@ -59,27 +59,47 @@ const sslPaymentInit = async (payload: ISSLCommerz) => {
 
 const validatePayment = async (payload: any) => {
     try {
-        const response = await axios({
-            method: "GET",
-            url: `${envVars.SSL.SSL_VALIDATION_API}?val_id=${payload.val_id}&store_id=${envVars.SSL.STORE_ID}&store_passwd=${envVars.SSL.STORE_PASS}`
-        })
+        const validationUrl =
+            `${process.env.SSL_VALIDATION_API}` +
+            `?val_id=${payload.val_id}` +
+            `&store_id=${process.env.SSL_STORE_ID}` +
+            `&store_passwd=${process.env.SSL_STORE_PASS}` +
+            `&format=json`;
 
-        console.log("sslcomeerz validate api response", response.data);
+        const { data } = await axios.get(validationUrl);
 
+        console.log("SSLCommerz validate response:", data);
+
+        // Check if payment exists
+        const payment = await prisma.payment.findUnique({
+            where: {
+                transactionId: payload.tran_id,
+            },
+        });
+
+        if (!payment) {
+            throw new Error("Payment record not found for this transaction");
+        }
+
+        // 🔥 Only update paymentGatewayData (no status update)
         await prisma.payment.update({
             where: {
                 transactionId: payload.tran_id,
             },
             data: {
-                paymentGatewayData: response.data,
-                status: "PAID", // চাইলে আপডেট করতে পারো
+                paymentGatewayData: data,
             },
         });
+
+        return true;
     } catch (error: any) {
-        console.log(error);
-        throw new AppError(401, `Payment Validation Error, ${error.message}`)
+        console.log("Validate Payment Error:", error.message);
+        throw new AppError(
+            401,
+            `Payment Validation Error: ${error.message}`
+        );
     }
-}
+};
 
 export const SSLService = {
     sslPaymentInit,
