@@ -6,5 +6,7 @@ import { Role } from "@prisma/client";
 const router = express.Router();
 
 router.post("/booking", checkAuth(Role.TOURIST), paymentController.createPayment);
+router.post("/success", paymentController.successPayment);
+router.post("/fail", paymentController.failPayment);
 
 export const paymentRoutes = router;
