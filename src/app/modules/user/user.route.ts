@@ -13,6 +13,8 @@ router.get("/", checkAuth(Role.ADMIN), userController.getAllUsers);
 router.get("/:id", checkAuth(Role.ADMIN, Role.GUIDE, Role.TOURIST), userController.getSingleUser);
 router.patch("/profile", checkAuth(Role.ADMIN, Role.GUIDE, Role.TOURIST), multerUpload.single("file"), userController.updateUserProfile);
 router.patch("/status/:id", checkAuth(Role.ADMIN), userController.updateUserStatus);
+router.patch("/role/:id", checkAuth(Role.ADMIN), userController.updateUserRole);
+
 router.delete("/:id", checkAuth(Role.ADMIN), userController.deleteUser);
 
 export const userRoutes = router;

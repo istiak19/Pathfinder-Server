@@ -96,6 +96,19 @@ const updateUserStatus = catchAsync(async (req, res) => {
     });
 });
 
+const updateUserRole = catchAsync(async (req, res) => {
+    const decoded = req.user as JwtPayload;
+
+    const result = await userService.updateUserRole(decoded, req.params.id, req.body.role);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "User role updated successfully",
+        data: result,
+    });
+});
+
 const deleteUser = catchAsync(async (req, res) => {
     const decoded = req.user as JwtPayload;
     await userService.deleteUser(decoded, req.params.id);
@@ -114,5 +127,6 @@ export const userController = {
     getSingleUser,
     updateUserProfile,
     updateUserStatus,
+    updateUserRole,
     deleteUser
 };
