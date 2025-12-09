@@ -62,7 +62,7 @@ const getAllListings = async (params: FilterParams, options: IOptions) => {
     }
 
     if (language) {
-        const lang = language.toLowerCase();
+        const lang = language.trim().toLowerCase();
         andConditions.push({
             guide: {
                 languages: {
@@ -70,7 +70,7 @@ const getAllListings = async (params: FilterParams, options: IOptions) => {
                 },
             },
         });
-    }
+    };
 
     let min = priceMin ? Number(priceMin) : undefined;
     let max = priceMax ? Number(priceMax) : undefined;

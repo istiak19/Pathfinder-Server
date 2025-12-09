@@ -11,7 +11,7 @@ model Listing {
     averageRating Float           @default(0.0)
     city          String
     images        String[]
-    status        String?         @default("active")
+    status        String?         @default("Active")
 
     // Relation
     guideId String
