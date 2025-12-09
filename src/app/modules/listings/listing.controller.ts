@@ -6,11 +6,10 @@ import { catchAsync } from "../../shared/catchAsync";
 import { JwtPayload } from "jsonwebtoken";
 import pick from "../../helpers/pick";
 import { listingFilterableFields } from "./listing.constant";
-import { uploadMultipleFiles } from "../../../config/fileUpload.service";
 
 const createListing = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
-    const images = req.files ? await uploadMultipleFiles(req.files as Express.Multer.File[], "listings") : [];
+    const images = req.file ? [req.file.path] : [];
 
     let bodyData: any = req.body;
     if (req.body.data) bodyData = JSON.parse(req.body.data);
@@ -54,7 +53,7 @@ const getSingleListing = catchAsync(async (req: Request, res: Response) => {
 
 const updateListing = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
-    const images = req.files ? await uploadMultipleFiles(req.files as Express.Multer.File[], "listings") : [];
+    const images = req.file ? [req.file.path] : [];
 
     let bodyData: any = req.body;
     if (req.body.data) bodyData = JSON.parse(req.body.data);

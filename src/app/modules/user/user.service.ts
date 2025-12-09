@@ -119,24 +119,18 @@ const getSingleUser = async (token: JwtPayload, id: string) => {
 };
 
 const createUser = async (payload: CreateUserPayload) => {
-    const { email, password, ...rest } = payload;
-
-    // const isExist = await prisma.user.findUnique({
-    //     where: { email }
-    // });
-
-    // if (isExist) {
-    //     throw new AppError(httpStatus.BAD_REQUEST, "A user with this email already exists.");
-    // };
-
+    const { email, password, languages, ...rest } = payload;
     const hashPassword = await bcrypt.hash(password, 10);
+
+    const languagesLower = (languages || []).map(l => l.toLowerCase());
 
     const user = await prisma.user.create({
         data: {
             email,
             password: hashPassword,
+            languages: languagesLower,
             ...rest
-        }
+        },
     });
 
     return user;
