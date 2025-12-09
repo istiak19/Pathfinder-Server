@@ -25,7 +25,12 @@ const login = async (payload: { email: string, password: string }) => {
         throw new AppError(httpStatus.UNAUTHORIZED, "Incorrect password.");
     };
 
-    return user;
+    return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+    };
 };
 
 const getMeUser = async (token: JwtPayload) => {

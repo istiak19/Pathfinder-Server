@@ -234,6 +234,34 @@ const updateUserStatus = async (token: JwtPayload, userId: string, status: UserS
     return updatedUser;
 };
 
+const updateUserRole = async (token: JwtPayload, userId: string, newRole: Role) => {
+    // Ensure requester is ADMIN
+    if (token.role !== Role.ADMIN) {
+        throw new AppError(httpStatus.UNAUTHORIZED, "Only admin can update user roles");
+    }
+
+    const isExistUser = await prisma.user.findUnique({
+        where: { id: userId }
+    });
+
+    if (!isExistUser) {
+        throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    };
+
+    // Prevent admin from changing own role
+    if (token.role === isExistUser?.role) {
+        throw new AppError(httpStatus.FORBIDDEN, "Admin cannot change their own role");
+    };
+
+    // Update user role
+    const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { role: newRole }
+    });
+
+    return updatedUser;
+};
+
 const deleteUser = async (token: JwtPayload, id: string) => {
     const isExistUser = await prisma.user.findUnique({
         where: {
@@ -256,5 +284,6 @@ export const userService = {
     getSingleUser,
     updateUserProfile,
     updateUserStatus,
+    updateUserRole,
     deleteUser
 };
