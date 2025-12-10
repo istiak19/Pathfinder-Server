@@ -114,6 +114,116 @@ const getAllListings = async (params: FilterParams, options: IOptions) => {
     };
 };
 
+const getGuideAllListings = async (token: JwtPayload, params: FilterParams, options: IOptions) => {
+    const isExistUser = await prisma.user.findUnique({
+        where: {
+            email: token.email
+        }
+    });
+
+    if (!isExistUser) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+    };
+
+    const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
+
+    const {
+        searchTerm,
+        language,
+        priceRange,
+        priceMin,
+        priceMax,
+        ...filterData
+    } = params;
+
+    const guideId = isExistUser.id;
+
+    if (!guideId) {
+        throw new AppError(httpStatus.UNAUTHORIZED, "Invalid token");
+    }
+
+    const andConditions: Prisma.ListingWhereInput[] = [];
+
+    // 🔍 SEARCH TERM FILTER
+    if (searchTerm) {
+        andConditions.push({
+            OR: listingSearchableFields.map(field => ({
+                [field]: {
+                    contains: searchTerm,
+                    mode: "insensitive",
+                },
+            })),
+        });
+    }
+
+    // 🌐 EXTRA FILTERS
+    if (Object.keys(filterData).length > 0) {
+        andConditions.push({
+            AND: Object.keys(filterData).map(key => ({
+                [key]: {
+                    equals: (filterData as any)[key],
+                },
+            })),
+        });
+    }
+
+    // 🗣 LANGUAGE FILTER
+    if (language) {
+        const lang = language.trim().toLowerCase();
+        andConditions.push({
+            guide: {
+                languages: {
+                    has: lang,
+                },
+            },
+        });
+    }
+
+    // 💰 PRICE LOGIC
+    let min = priceMin ? Number(priceMin) : undefined;
+    let max = priceMax ? Number(priceMax) : undefined;
+
+    if (priceRange) {
+        const [rawMin, rawMax] = priceRange.split("-");
+        if (rawMin) min = Number(rawMin);
+        if (rawMax) max = Number(rawMax);
+    }
+
+    if (min !== undefined || max !== undefined) {
+        andConditions.push({
+            price: {
+                gte: min,
+                lte: max,
+            },
+        });
+    }
+
+    const whereConditions: Prisma.ListingWhereInput = {
+        guideId: guideId,
+        AND: andConditions.length > 0 ? andConditions : undefined,
+    };
+
+    const result = await prisma.listing.findMany({
+        skip,
+        take: limit,
+        where: whereConditions,
+        orderBy: { [sortBy]: sortOrder },
+        include: {
+            guide: true,
+            bookings: true,
+            reviews: true,
+        },
+    });
+
+    const total = await prisma.listing.count({ where: whereConditions });
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+        meta: { page, limit, total, totalPages },
+        data: result,
+    };
+};
+
 const getSingleListing = async (token: JwtPayload, id: string) => {
     const isExistUser = await prisma.user.findUnique({
         where: {
@@ -222,6 +332,7 @@ const deleteListing = async (token: JwtPayload, id: string) => {
 export const listingService = {
     createListing,
     getAllListings,
+    getGuideAllListings,
     getSingleListing,
     updateListing,
     updateListingStatus,
