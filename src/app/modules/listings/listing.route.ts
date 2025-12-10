@@ -10,6 +10,7 @@ const router = Router();
 
 router.post("/", checkAuth(Role.ADMIN, Role.GUIDE), multerUpload.single("file"), validateRequest(createListingZodSchema), listingController.createListing);
 router.get("/", listingController.getAllListings);
+router.get("/guide-listings", checkAuth(Role.GUIDE), listingController.getGuideAllListings);
 router.get("/:id", checkAuth(Role.ADMIN, Role.GUIDE, Role.TOURIST), listingController.getSingleListing);
 router.patch("/:id", checkAuth(Role.GUIDE), multerUpload.single("file"), validateRequest(updateListingZodSchema), listingController.updateListing);
 router.patch("/status/:id", checkAuth(Role.GUIDE, Role.ADMIN), listingController.updateListingStatus);

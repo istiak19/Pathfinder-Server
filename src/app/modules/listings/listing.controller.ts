@@ -39,6 +39,21 @@ const getAllListings = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getGuideAllListings = catchAsync(async (req: Request, res: Response) => {
+    const decoded = req.user as JwtPayload;
+    const filters = pick(req.query, listingFilterableFields) // searching , filtering
+    const options = pick(req.query, ["page", "limit", "sortBy", "sortOrder"]) // pagination and sorting
+    const result = await listingService.getGuideAllListings(decoded, filters, options);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Guide Listings fetched successfully",
+        meta: result.meta,
+        data: result.data
+    });
+});
+
 const getSingleListing = catchAsync(async (req: Request, res: Response) => {
     const decoded = req.user as JwtPayload;
     const listing = await listingService.getSingleListing(decoded, req.params.id);
@@ -98,6 +113,7 @@ export const listingController = {
     createListing,
     getAllListings,
     getSingleListing,
+    getGuideAllListings,
     updateListing,
     updateListingStatus,
     deleteListing
