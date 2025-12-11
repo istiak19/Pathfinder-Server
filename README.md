@@ -1,14 +1,14 @@
-# **Pathfinder – Local Guide Platform (Backend)**
+# 📍 **Pathfinder – Local Guide Platform (Backend)**
 
-A scalable backend service that connects **tourists** with **local guides**, enabling authentic travel experiences through bookings, reviews, and secure payments.
-Built with **Node.js**, **Express**, **Prisma**, and **PostgreSQL**, Pathfinder provides a complete backend API for tourism services.
+A scalable backend service that connects **tourists** with **local guides**, enabling authentic travel experiences through listings, bookings, reviews, and secure payments.
+Built using **Node.js**, **Express**, **PostgreSQL**, **Prisma**, and **SSLCommerz**.
 
 🔗 **Live Website:** [https://local-jet.vercel.app](https://local-jet.vercel.app)
-🚀 **Tech:** Node.js, Express, Prisma, PostgreSQL, JWT, SSLCommerz
+🚀 **Tech:** Node.js • Express • Prisma • PostgreSQL • JWT • Multer • Cloudinary/S3 • SSLCommerz
 
 ---
 
-## **Table of Contents**
+## 📌 **Table of Contents**
 
 1. [Overview](#overview)
 2. [Features](#features)
@@ -26,79 +26,80 @@ Built with **Node.js**, **Express**, **Prisma**, and **PostgreSQL**, Pathfinder 
 
 ---
 
-## **Overview**
+## 🔎 **Overview**
 
-Pathfinder backend provides robust APIs for:
+Pathfinder’s backend provides a robust, secure, and scalable API for managing:
 
-* User authentication & role-based permissions
+* User authentication & roles
 * Guide-managed tour listings
-* Booking workflow (Request → Approval → Payment → Completion)
+* Tourist bookings and workflow
 * Secure online payments using **SSLCommerz**
-* Reviews & ratings
-* Admin oversight for moderation and platform integrity
+* Review & rating system
+* Admin tools for full platform moderation
+
+The backend is designed with modular controllers, middleware, validation, and Prisma ORM for clean and maintainable architecture.
 
 ---
 
-## **Features**
+## ⭐ **Features**
 
 ### **1. User Management**
 
 * Roles: **Tourist**, **Guide**, **Admin**
-* JWT Authentication
+* JWT authentication
 * Registration, login, logout
-* Profile management + image uploads (Cloudinary/S3)
-* Admin: account activation, deactivation
+* Profile update with image upload (Cloudinary/S3)
+* Admin controls: activate, deactivate, change role
 
 ### **2. Tour Listings**
 
-* Guides create/manage tours
-* Images, price, duration, itinerary
-* Public view + filtering
-* Admin/Guide status management
+* Created & managed by guides/admin
+* Photo upload support
+* Public listing view with filtering
+* Listing status management
 
 ### **3. Booking System**
 
 * Tourists request bookings
-* Guides/Admin accept or reject
-* Status lifecycle:
+* Guides/Admin approve or reject
+* Booking lifecycle:
 
   **Pending → Approved → Paid → Completed / Cancelled**
 
-### **4. Payments (SSLCommerz)**
+### **4. Secure Payments (SSLCommerz)**
 
-* Fully integrated **SSLCommerz Hosted Payment Gateway**
-* Auto-update payment status
-* Secure validation callback
-* Auto-confirm booking on success
+* Full hosted payment gateway integration
+* Secure callback validation
+* Automatic booking confirmation after successful payment
 
-### **5. Reviews**
+### **5. Review System**
 
 * Tourists leave ratings & comments after tour completion
 
-### **6. Admin Controls**
+### **6. Admin Tools**
 
-* Full user management
-* Platform moderation
-* Handle disputes/bookings
-
----
-
-## **Tech Stack**
-
-| Layer           | Technology          |
-| --------------- | ------------------- |
-| Backend         | Node.js, Express    |
-| ORM             | Prisma              |
-| Database        | PostgreSQL          |
-| Authentication  | JWT                 |
-| File Upload     | Cloudinary / AWS S3 |
-| Payment Gateway | **SSLCommerz**      |
-| Validation      | Zod                 |
-| Uploads         | Multer              |
+* Manage all users
+* Oversee listings & bookings
+* Handle disputes
 
 ---
 
-## **Project Structure**
+## 🧰 **Tech Stack**
+
+| Layer           | Technology                  |
+| --------------- | --------------------------- |
+| Backend         | Node.js, Express            |
+| ORM             | Prisma                      |
+| Database        | PostgreSQL                  |
+| Authentication  | JWT                         |
+| Validation      | Zod                         |
+| Uploads         | Multer + Cloudinary/AWS S3  |
+| Payment Gateway | SSLCommerz                  |
+| Deployment      | Vercel / Other Node Hosting |
+
+---
+
+## 📁 **Project Structure**
 
 ```
 LOCAL-GUIDE-SERVER
@@ -134,9 +135,9 @@ LOCAL-GUIDE-SERVER
 
 ---
 
-## **Installation**
+## 🛠️ **Installation**
 
-### 1️⃣ Clone the repo
+### 1️⃣ Clone the repository
 
 ```bash
 git clone https://github.com/your-username/local-guide-backend.git
@@ -156,7 +157,7 @@ npx prisma generate
 npx prisma migrate dev
 ```
 
-### 4️⃣ Start development server
+### 4️⃣ Run development server
 
 ```bash
 npm run dev
@@ -164,9 +165,9 @@ npm run dev
 
 ---
 
-## **Environment Variables**
+## 🔐 **Environment Variables**
 
-Create a `.env` file:
+Create a `.env` file with:
 
 ```
 DATABASE_URL="postgres://..."
@@ -177,6 +178,7 @@ SSLC_STORE_ID="your_store_id"
 SSLC_STORE_PASSWORD="your_store_password"
 SSLC_MODE="live"   # or "sandbox"
 
+# File uploads
 CLOUDINARY_CLOUD_NAME=""
 CLOUDINARY_API_KEY=""
 CLOUDINARY_API_SECRET=""
@@ -186,89 +188,116 @@ PORT=5000
 
 ---
 
-## **Scripts**
+## 📜 **Scripts**
 
-| Script               | Description           |
-| -------------------- | --------------------- |
-| `npm run dev`        | Start dev server      |
-| `npm run build`      | Build TypeScript      |
-| `npm start`          | Run production server |
-| `prisma migrate dev` | Run DB migrations     |
-| `prisma studio`      | GUI for database      |
+| Script               | Description              |
+| -------------------- | ------------------------ |
+| `npm run dev`        | Start development server |
+| `npm run build`      | Build TypeScript         |
+| `npm start`          | Start production server  |
+| `prisma migrate dev` | Run database migrations  |
+| `prisma studio`      | Visual DB viewer         |
 
 ---
 
-## **API Overview**
+# 🧩 **API Overview**
 
-### **Auth Routes**
+Below are the **exact routes** from your codebase.
+
+---
+
+## 🔐 **Auth Routes**
 
 ```
-POST /auth/register
 POST /auth/login
-GET  /auth/me
 POST /auth/logout
-```
-
-### **Users**
-
-```
-GET    /users/           (Admin)
-GET    /users/:id
-PATCH  /users/profile
-PATCH  /users/status/:id (Admin)
-DELETE /users/:id        (Admin)
-```
-
-### **Listings**
-
-```
-POST   /listings/
-GET    /listings/
-GET    /listings/:id
-PATCH  /listings/:id
-PATCH  /listings/status/:id
-DELETE /listings/:id
-```
-
-### **Bookings**
-
-```
-POST   /bookings/
-GET    /bookings/me
-GET    /bookings/
-GET    /bookings/guide/my
-PATCH  /bookings/:id
-DELETE /bookings/:id
-```
-
-### **Payments (SSLCommerz)**
-
-```
-POST /payments/booking
-POST /payments/success
-POST /payments/fail
-POST /payments/cancel
-POST /payments/validate-payment
-```
-
-### **Reviews**
-
-```
-POST /reviews/
-GET  /reviews/
+GET  /auth/me
 ```
 
 ---
 
-## **Database & Prisma**
+## 👥 **User Routes**
 
-Modular schema includes:
+```
+POST   /users/register
+GET    /users/                       (Admin)
+GET    /users/:id                    (Admin, Guide, Tourist)
+PATCH  /users/profile                (Admin, Guide, Tourist) [file upload]
+PATCH  /users/status/:id             (Admin)
+PATCH  /users/role/:id               (Admin)
+DELETE /users/:id                    (Admin)
+```
 
-* `user.prisma` – roles & profiles
-* `listing.prisma` – tour details
+---
+
+## 🗺️ **Listing Routes**
+
+```
+POST   /listings/                    (Admin, Guide) [file upload]
+GET    /listings/                    (Public)
+GET    /listings/guide-listings      (Guide)
+GET    /listings/:id                 (Admin, Guide, Tourist)
+PATCH  /listings/:id                 (Guide) [file upload]
+PATCH  /listings/status/:id          (Guide, Admin)
+DELETE /listings/:id                 (Guide)
+```
+
+---
+
+## 📅 **Booking Routes**
+
+```
+POST   /bookings/                    (Tourist)
+GET    /bookings/me                  (Tourist)
+GET    /bookings/                    (Admin)
+GET    /bookings/guide/my            (Guide)
+GET    /bookings/me/:id              (Tourist)
+PATCH  /bookings/:id                 (Guide, Admin)
+DELETE /bookings/:id                 (Tourist, Admin)
+```
+
+---
+
+## 💳 **Payment Routes (SSLCommerz)**
+
+```
+POST /payments/booking               (Tourist)
+POST /payments/success               (Callback)
+POST /payments/fail                  (Callback)
+POST /payments/cancel                (Callback)
+POST /payments/validate-payment      (Callback)
+```
+
+---
+
+## ⭐ **Review Routes**
+
+```
+POST /reviews/                       (Tourist)
+GET  /reviews/                       (Public)
+```
+
+---
+
+## 📊 **Meta Routes**
+
+```
+GET /meta/                           (Admin, Guide, Tourist)
+```
+
+---
+
+## 🗄️ **Database & Prisma**
+
+Your Prisma schema is modularized:
+
+* `user.prisma` – accounts, profiles, roles
+* `listing.prisma` – tour listings
 * `booking.prisma` – booking workflow
+* `review.prisma` – rating system
 * `payment.prisma` – SSLCommerz metadata
-* `review.prisma` – feedback system
+
+### Commands
 
 Run migrations:
 
@@ -284,36 +313,36 @@ npx prisma studio
 
 ---
 
-## **Payment Flow (SSLCommerz)**
+## 💰 **Payment Flow (SSLCommerz)**
 
-1. Tourist requests booking → status **Pending**
-2. Tourist starts SSLCommerz payment via `/payments/booking`
+1. Tourist requests booking → **Pending**
+2. Tourist initiates payment via `/payments/booking`
 3. SSLCommerz redirects to:
 
    * `/payments/success`
    * `/payments/fail`
    * `/payments/cancel`
-4. Server validates payment with `/payments/validate-payment`
-5. On success:
+4. Backend validates at `/payments/validate-payment`
+5. If successful:
 
-   * Payment marked **Paid**
-   * Booking moves to **Confirmed**
-6. Guide completes tour → booking becomes **Completed**
-
----
-
-## **Troubleshooting**
-
-| Issue                | Fix                                               |
-| -------------------- | ------------------------------------------------- |
-| Prisma errors        | Check `DATABASE_URL`                              |
-| JWT errors           | Verify `JWT_SECRET`                               |
-| Upload issues        | Confirm Cloudinary keys                           |
-| Payment fail         | Verify Store ID & Password                        |
-| Callback not working | Confirm Vercel/Server URL in SSLCommerz dashboard |
+   * Payment → **Paid**
+   * Booking → **Confirmed**
+6. After completion by guide → **Completed**
 
 ---
 
-## **Contributors**
+## 🧯 **Troubleshooting**
+
+| Issue                           | Solution                     |
+| ------------------------------- | ---------------------------- |
+| Prisma errors                   | Check `DATABASE_URL`         |
+| JWT failed                      | Verify `JWT_SECRET`          |
+| File upload failing             | Check Cloudinary credentials |
+| Payment mismatch                | Validate Store ID & Password |
+| SSLCommerz callback not working | Verify base URL settings     |
+
+---
+
+## 👤 **Contributors**
 
 * **Istiak Ahamed** – Backend Developer
